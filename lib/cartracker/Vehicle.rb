@@ -19,7 +19,16 @@ module CarTracker
 
   class Vehicle < PEROBS::Object
 
-    attr_persist :vin, :telemetry, :rides, :charges
+    attr_persist :vin, :telemetry, :rides, :charges, :next_server_sync
+
+    # Depending on the state the car is in we determine the frequency of the
+    # syncs with the server. These times are in minutes.
+    @@STANDARD_SYNC_PAUSE_TIMES = {
+      :parking => 30,
+      :driving => 10,
+      :charging_ac => 15,
+      :charging_dc => 5
+    }
 
     def initialize(p)
       super(p)
@@ -37,7 +46,11 @@ module CarTracker
       # previous record (with the exception of the timestamp).
       unless @telemetry.last == record
         @telemetry << record
+        analyze_telemetry_record(@telemetry.length - 1)
       end
+
+      self.next_server_sync = Time.now +
+        @@STANDARD_SYNC_PAUSE_TIMES[record.state] * 60
     end
 
     def analyze_telemetry
@@ -99,8 +112,7 @@ module CarTracker
         # The vehicle state has changed.
         case state
         when :charging_ac, :charging_dc
-          puts "Charge found"
-          extract_charge(r3, r0, r1)
+          extract_charge(r3, r0, r2)
           if r3.state == :parking && r2.odometer > r3.odometer
             # We are missing a ride in the telemetry right before reaching the
             # charing station. Let's try to reconstruct it.
@@ -112,7 +124,6 @@ module CarTracker
             extract_ride(r1, r2)
           end
         when :driving
-          puts "Ride found"
           extract_ride(r3, r0)
           if r3.state == :parking && r2.soc > r3.soc
             # We are missing a charge in the telemetry data right before the
@@ -139,7 +150,6 @@ module CarTracker
     end
 
     def extract_ride(start_record, end_record)
-      puts "Ride found: #{start_record.timestamp}"
       energy = soc2energy(start_record.soc - end_record.soc)
       energy = 0.0 if energy < 0.0
       @rides << (ride = @store.new(Ride))
@@ -156,14 +166,15 @@ module CarTracker
     end
 
     def extract_charge(start_record, end_record, charge_record = nil)
-      energy = soc2energy(end_record.soc - start_record.soc)
+      start_soc = charge_record ? charge_record.soc : start_record.soc
+      energy = soc2energy(end_record.soc - start_soc)
       energy = 0.0 if energy < 0.0
       @charges << (charge = @store.new(Charge))
       charge.energy = energy
       charge.type = charge_record.nil? ? 'AC' :
         charge_record.state == :charging_ac ? 'AC' : 'DC'
       charge.start_timestamp = start_record.timestamp
-      charge.start_soc = start_record.soc
+      charge.start_soc = start_soc
       charge.end_timestamp = end_record.timestamp
       charge.end_soc = end_record.soc
       charge.latitude = charge_record ? charge_record.latitude : nil
@@ -171,6 +182,8 @@ module CarTracker
     end
 
     def soc2energy(soc)
+      # This is currently hardcoded for the Audi e-tron 55 Quattro. It has a
+      # net battery capacity of 83.7 kWh.
       83.7 * soc / 100.0
     end
 

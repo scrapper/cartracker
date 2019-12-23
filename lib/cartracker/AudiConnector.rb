@@ -155,6 +155,12 @@ module CarTracker
       return unless token_valid?
 
       vehicle = @vehicles[vin]
+      # The timestamp for the next server sync of this vehicle determines if
+      # we actually connect to the server or not. If we are still in the pause
+      # period we abort the update.
+      if vehicle.next_server_sync && Time.now < vehicle.next_server_sync - 10
+        return
+      end
 
       record = @store.new(TelemetryRecord)
 
