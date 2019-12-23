@@ -66,7 +66,7 @@ module CarTracker
       end
       Log.open(log_file)
       Log.formatter = proc { |severity, datetime, progname, msg|
-        "#{severity == Logger::INFO ? '' : "#{severity}:"} #{msg}\n"
+        "#{datetime} #{severity} #{msg}\n"
       }
       Log.level = Logger::INFO
 
