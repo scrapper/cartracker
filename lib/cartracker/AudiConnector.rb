@@ -47,7 +47,9 @@ module CarTracker
         'ADRUM': 'isAray:true'
       }
 
-      if @token.nil? || @token_valid_until < Time.now
+      # Make sure we have an authentication token that is valid for at least
+      # 60 more seconds.
+      if @token.nil? || @token_valid_until < Time.now + 60
         unless authenticate
           Log.fatal "Cannot authenticate with Audi Connect"
         end
@@ -125,10 +127,21 @@ module CarTracker
       true
     end
 
+    def analyze_telemetry
+      @vehicles.each do |vin, vehicle|
+        vehicle.analyze_telemetry
+      end
+      @store.gc
+    end
+
     def list_vehicles
       puts "VIN"
       @vehicles.each do |vin, vehicle|
         puts vehicle.to_csv
+        puts "\nRides\n"
+        puts vehicle.list_rides
+        puts "\nCharges\n"
+        puts vehicle.list_charges
       end
     end
 
@@ -289,6 +302,13 @@ module CarTracker
       vin = vehicle.vin
       url = @base_url + "bs/cf/v1/Audi/DE/vehicles/#{vin}/position"
       return false unless (data = connect_request(url))
+
+      if data.empty?
+        # When the car is in motion no position information is available.
+        vehicle.set_position(nil, nil)
+        return true
+      end
+
       if data.is_a?(Hash) && data.include?('findCarResponse') &&
           data['findCarResponse'].include?('Position') &&
           (position = data['findCarResponse']['Position']).is_a?(Hash)
@@ -353,8 +373,11 @@ module CarTracker
       uri = URI.parse(url)
 
       response = get_request(uri)
-      if response.code == '200'
+      case response.code.to_i
+      when 200
         return JSON.parse(response.body)
+      when 204
+        return ''
       else
         Log.error "connect_request for #{uri} failed: #{response.message}"
         return nil

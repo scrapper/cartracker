@@ -53,7 +53,7 @@ module CarTracker
       elsif @parking_brake_active
         return :parking
       else
-        return driving
+        return :driving
       end
     end
 

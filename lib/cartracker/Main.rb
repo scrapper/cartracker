@@ -23,17 +23,7 @@ module CarTracker
       app_dir = File.join(Dir.home, '.cartracker')
       create_directory(app_dir, 'Application directory')
 
-      # Open a log file to record warning and error messages
-      log_file_name = File.join(app_dir, "cartracker.log")
-      begin
-        mode = File::WRONLY | File::APPEND
-        mode |= File::CREAT unless File.exist?(log_file_name)
-        log_file = File.open(log_file_name, mode)
-      rescue IOError => e
-        $stderr.puts "Cannot open log file #{log_file_name}: #{e.message}"
-        return 1
-      end
-      Log.open(log_file)
+      return 1 unless (log_file = open_log(app_dir))
 
       begin
         @db = PEROBS::Store.new(app_dir)
@@ -43,6 +33,8 @@ module CarTracker
         end
 
         case argv[0]
+        when 'analyze'
+          ac.analyze_telemetry
         when 'update'
           ac.update_vehicles
         when 'list'
@@ -50,7 +42,7 @@ module CarTracker
         when 'sync'
           ac.sync_vehicles
         else
-          $stderr.puts "Usage: cartracker <update|list|sync>"
+          $stderr.puts "Usage: cartracker <update|list|sync|analyze>"
         end
       ensure
         @db.exit if @db
@@ -60,6 +52,26 @@ module CarTracker
     end
 
     private
+
+    def open_log(app_dir)
+      # Open a log file to record warning and error messages
+      log_file_name = File.join(app_dir, "cartracker.log")
+      begin
+        mode = File::WRONLY | File::APPEND
+        mode |= File::CREAT unless File.exist?(log_file_name)
+        log_file = File.open(log_file_name, mode)
+      rescue IOError => e
+        $stderr.puts "Cannot open log file #{log_file_name}: #{e.message}"
+        return nil
+      end
+      Log.open(log_file)
+      Log.formatter = proc { |severity, datetime, progname, msg|
+        "#{severity == Logger::INFO ? '' : "#{severity}:"} #{msg}\n"
+      }
+      Log.level = Logger::INFO
+
+      log_file
+    end
 
     def create_directory(dir, name)
       return if Dir.exists?(dir)
