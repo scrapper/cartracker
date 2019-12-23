@@ -16,7 +16,8 @@ module CarTracker
 
   class TelemetryRecord < PEROBS::Object
 
-    attr_persist :timestamp, :odometer, :speed, :outside_temperature,
+    attr_persist :timestamp, :last_vehicle_contact_time,
+      :odometer, :speed, :outside_temperature,
       :latitude, :longitude,
       :parking_brake_active, :soc, :range, :charging_mode, :charging_power
 
@@ -33,7 +34,8 @@ module CarTracker
     end
 
     def ==(r)
-      @odometer == r.odometer &&
+      @last_vehicle_contact_time == r.last_vehicle_contact_time &&
+        @odometer == r.odometer &&
         @speed == r.speed &&
         @outside_temperature == r.outside_temperature &&
         @latitude == r.latitude &&
@@ -54,6 +56,15 @@ module CarTracker
         return :parking
       else
         return :driving
+      end
+    end
+
+    def set_last_vehicle_contact_time(ts)
+      # The timestamp of the last successful contact with the vehicle.
+      begin
+        self.last_vehicle_contact_time = Time.parse(ts)
+      rescue ArgumentError
+        return
       end
     end
 
@@ -165,7 +176,8 @@ module CarTracker
 
     def to_csv
       [
-        @timestamp, @odometer, @speed, @outside_temperature,
+        @timestamp, @last_vehicle_contact_time,
+        @odometer, @speed, @outside_temperature,
         @latitude, @longitude,
         @parking_brake_active, @soc, @range, @charging_mode, @charging_power
       ].join(',')

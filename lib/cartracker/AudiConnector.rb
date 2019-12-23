@@ -170,7 +170,7 @@ module CarTracker
         vehicle.add_record(record)
       end
 
-      url = @base_url + "bs/climatisation/v1/Audi/DE/vehicles/#{vin}/climater"
+      #url = @base_url + "bs/climatisation/v1/Audi/DE/vehicles/#{vin}/climater"
       #return false unless (data = connect_request(url))
     end
 
@@ -183,6 +183,8 @@ module CarTracker
     def sync_vehicle(vin)
       return false unless token_valid?
 
+      # The direct communication with the car is strongly rate limited. Only a
+      # few calls per day are allowed.
       url = @base_url + "bs/vsr/v1/Audi/DE/vehicles/#{vin}/requests"
       uri = URI.parse(url)
 
@@ -222,10 +224,10 @@ module CarTracker
           end
         end
 
-        url = @base_url + "/vsr/v1/Audi/DE/vehicles/#{vin}/requests/#{request_id}/status"
-        return false unless (data = connect_request(url))
-
-        puts data
+        # This operation returns a CurrentVehicleDataResponse that is
+        # identical to a StoredVehicleDataResponse in format.
+        # url = @base_url + "bs/vsr/v1/Audi/DE/vehicles/#{vin}/requests/#{request_id}/status"
+        # return false unless (data = connect_request(url))
       else
         Log.error response.message
         return false
@@ -247,7 +249,6 @@ module CarTracker
       false
     end
 
-
     def get_vehicle_status(vehicle, record)
       vin = vehicle.vin
       url = @base_url + "bs/vsr/v1/Audi/DE/vehicles/#{vin}/status"
@@ -266,18 +267,31 @@ module CarTracker
           return false
         end
 
-        if %w(0x0101010002 0x030102FFFF 0x030103FFFF).include?(d['id'])
+        if %w(0x0101010001 0x0101010002 0x030102FFFF
+              0x030103FFFF).include?(d['id'])
           # Other potentially interesting sections:
           # 0x030104FFFF: Doors
           # 0x030105FFFF: Windows
           d['field'].each do |f|
             unless f.include?('id')
               Log.warn 'StoredVehicleDataResponse data field does not ' +
-                'contain an id'
+                "contain an id: #{f}"
               return false
             end
 
             case f['id']
+            when '0x0101010001'
+              if (ts = f['tsCarSentUtc'])
+                # The timestamp of the last successful transmission from the
+                # vehicle. It is labled as UTC and has a UTC timestamp.
+                # Unfortunately it is MET. So we strip the 'Z'.
+                ts = ts.tr('Z', '')
+                record.set_last_vehicle_contact_time(ts)
+              else
+                Log.warn "StoredVehicleDataResponse has no tsCarSentUtc " +
+                  "field: #{f}"
+                return false
+              end
             when '0x0101010002'
               # Odometer
               record.set_odometer(f['value'])
