@@ -32,6 +32,31 @@ module CarTracker
       self.speed = 0 if @speed.nil?
     end
 
+    def ==(r)
+      @odometer == r.odometer &&
+        @speed == r.speed &&
+        @outside_temperature == r.outside_temperature &&
+        @latitude == r.latitude &&
+        @longitude == r.longitude &&
+        @parking_brake_active == r.parking_brake_active &&
+        @soc == r.soc &&
+        @range == r.range &&
+        @charging_mode == r.charging_mode &&
+        @charging_power == r.charging_power
+    end
+
+    def state
+      if @charging_mode == 'AC'
+        return :charging_ac
+      elsif @charging_mode == 'DC'
+        return :charging_dc
+      elsif @parking_brake_active
+        return :parking
+      else
+        return driving
+      end
+    end
+
     def set_odometer(km)
       # The odometer value is stored in km
       km = km.to_i

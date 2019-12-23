@@ -23,6 +23,18 @@ module CarTracker
       app_dir = File.join(Dir.home, '.cartracker')
       create_directory(app_dir, 'Application directory')
 
+      # Open a log file to record warning and error messages
+      log_file_name = File.join(app_dir, "cartracker.log")
+      begin
+        mode = File::WRONLY | File::APPEND
+        mode |= File::CREAT unless File.exist?(log_file_name)
+        log_file = File.open(log_file_name, mode)
+      rescue IOError => e
+        $stderr.puts "Cannot open log file #{log_file_name}: #{e.message}"
+        return 1
+      end
+      Log.open(log_file)
+
       begin
         @db = PEROBS::Store.new(app_dir)
 
@@ -35,12 +47,16 @@ module CarTracker
           ac.update_vehicles
         when 'list'
           ac.list_vehicles
+        when 'sync'
+          ac.sync_vehicles
         else
-          $stderr.puts "Usage: cartracker <update|list>"
+          $stderr.puts "Usage: cartracker <update|list|sync>"
         end
       ensure
         @db.exit if @db
       end
+
+      log_file.close
     end
 
     private

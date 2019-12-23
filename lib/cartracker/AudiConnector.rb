@@ -32,6 +32,7 @@ module CarTracker
     end
 
     def restore
+      @base_url = 'https://msg.audi.de/fs-car/'
       @request_header = {
         'Accept': 'application/json',
         'X-App-ID': 'de.audi.mmiapp',
@@ -64,7 +65,7 @@ module CarTracker
     end
 
     def authenticate
-      url = 'https://msg.audi.de/fs-car/core/auth/v1/Audi/DE/token'
+      url = @base_url + 'core/auth/v1/Audi/DE/token'
       uri = URI.parse(url)
       if @username.nil? || @password.nil?
         Log.warn 'No login credentials stored in database. Requesting ' +
@@ -99,7 +100,7 @@ module CarTracker
     def update_vehicle_list
       return unless token_valid?
 
-      url = 'https://msg.audi.de/fs-car/usermanagement/users/v1/Audi/DE/vehicles'
+      url = @base_url + 'usermanagement/users/v1/Audi/DE/vehicles'
       return false unless (data = connect_request(url))
 
       unless data.is_a?(Hash) && data.include?('userVehicles') &&
@@ -113,11 +114,11 @@ module CarTracker
           Log.warn "userVehicles list corrupted: #{ary.inspect}"
         end
 
-        fin = ary[0]
-        unless @vehicles.include?(fin)
-          Log.info "New vehicle with FIN #{fin} added"
-          @vehicles[fin] = v = @store.new(Vehicle)
-          v.fin = fin
+        vin = ary[0]
+        unless @vehicles.include?(vin)
+          Log.info "New vehicle with VIN #{vin} added"
+          @vehicles[vin] = v = @store.new(Vehicle)
+          v.vin = vin
         end
       end
 
@@ -125,24 +126,22 @@ module CarTracker
     end
 
     def list_vehicles
-      puts "FIN"
-      @vehicles.each do |fin, vehicle|
+      puts "VIN"
+      @vehicles.each do |vin, vehicle|
         puts vehicle.to_csv
       end
     end
 
     def update_vehicles
-      @vehicles.each do |fin, vehicle|
-        update_vehicle(fin)
+      @vehicles.each do |vin, vehicle|
+        update_vehicle(vin)
       end
     end
 
-    def update_vehicle(fin)
+    def update_vehicle(vin)
       return unless token_valid?
 
-      get_current_vehicle_data(fin)
-
-      vehicle = @vehicles[fin]
+      vehicle = @vehicles[vin]
 
       record = @store.new(TelemetryRecord)
 
@@ -152,9 +151,70 @@ module CarTracker
         vehicle.add_record(record)
       end
 
-      url = "https://msg.audi.de/fs-car/bs/climatisation/v1/Audi/DE/vehicles/#{fin}/climater"
+      url = @base_url + "bs/climatisation/v1/Audi/DE/vehicles/#{vin}/climater"
       #return false unless (data = connect_request(url))
     end
+
+    def sync_vehicles
+      @vehicles.each do |vin, vehicle|
+        sync_vehicle(vin)
+      end
+    end
+
+    def sync_vehicle(vin)
+      return false unless token_valid?
+
+      url = @base_url + "bs/vsr/v1/Audi/DE/vehicles/#{vin}/requests"
+      uri = URI.parse(url)
+
+      response = post_request(uri)
+      if response.code == '202'
+        data = JSON.parse(response.body)
+        if data.is_a?(Hash) && data.include?('CurrentVehicleDataResponse') &&
+            (cvdr = data['CurrentVehicleDataResponse']).is_a?(Hash) &&
+            cvdr.include?('requestId')
+          request_id = cvdr['requestId']
+        else
+          Log.warn "CurrentVehicleDataResponse corrupted: #{data}"
+          return false
+        end
+
+        url = @base_url + "bs/vsr/v1/Audi/DE/vehicles/#{vin}/requests/#{request_id}/jobstatus"
+        loop do
+          return false unless (data = connect_request(url))
+
+          if data.is_a?(Hash) && data.include?('requestStatusResponse') &&
+              (rsr = data['requestStatusResponse']).is_a?(Hash) &&
+              rsr.include?('status')
+            case rsr['status']
+            when 'request_in_progress'
+              sleep(1)
+            when 'request_successful'
+              break
+            when 'request_fail'
+              return false
+            else
+              puts "Unknown status: #{rsr['status']}"
+              return false
+            end
+          else
+            Log.warn "request_in_progress is corrupted: #{data}"
+            return false
+          end
+        end
+
+        url = @base_url + "/vsr/v1/Audi/DE/vehicles/#{vin}/requests/#{request_id}/status"
+        return false unless (data = connect_request(url))
+
+        puts data
+      else
+        Log.error response.message
+        return false
+      end
+
+      true
+    end
+
 
     private
 
@@ -168,22 +228,10 @@ module CarTracker
       false
     end
 
-    def get_current_vehicle_data(fin)
-      url = "https://msg.audi.de/fs-car/bs/vsr/v1/Audi/DE/vehicles/#{fin}/requests"
-      uri = URI.parse(url)
-
-      response = post_request(uri)
-      if response.code == '202'
-        # Nothing to do here. Update from vehicle was received.
-      else
-        Log.error response.message
-        return false
-      end
-    end
 
     def get_vehicle_status(vehicle, record)
-      fin = vehicle.fin
-      url = "https://msg.audi.de/fs-car/bs/vsr/v1/Audi/DE/vehicles/#{fin}/status"
+      vin = vehicle.vin
+      url = @base_url + "bs/vsr/v1/Audi/DE/vehicles/#{vin}/status"
       return false unless (data = connect_request(url))
 
       unless data.is_a?(Hash) && data['StoredVehicleDataResponse'] &&
@@ -238,8 +286,8 @@ module CarTracker
     end
 
     def get_vehicle_position(vehicle, record)
-      fin = vehicle.fin
-      url = "https://msg.audi.de/fs-car/bs/cf/v1/Audi/DE/vehicles/#{fin}/position"
+      vin = vehicle.vin
+      url = @base_url + "bs/cf/v1/Audi/DE/vehicles/#{vin}/position"
       return false unless (data = connect_request(url))
       if data.is_a?(Hash) && data.include?('findCarResponse') &&
           data['findCarResponse'].include?('Position') &&
@@ -267,8 +315,8 @@ module CarTracker
     end
 
     def get_vehicle_charger(vehicle, record)
-      fin = vehicle.fin
-      url = "https://msg.audi.de/fs-car/bs/batterycharge/v1/Audi/DE/vehicles/#{fin}/charger"
+      vin = vehicle.vin
+      url = @base_url + "bs/batterycharge/v1/Audi/DE/vehicles/#{vin}/charger"
       return false unless (data = connect_request(url))
 
       if data.is_a?(Hash) && data.include?('charger') &&

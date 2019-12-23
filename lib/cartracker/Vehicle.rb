@@ -17,7 +17,7 @@ module CarTracker
 
   class Vehicle < PEROBS::Object
 
-    attr_persist :fin, :telemetry
+    attr_persist :vin, :telemetry
 
     def initialize(p)
       super(p)
@@ -31,7 +31,19 @@ module CarTracker
     end
 
     def add_record(record)
-      @telemetry << record
+      # We only store the new record if at least one value differs from the
+      # previous record (with the exception of the timestamp).
+      unless @telemetry.last == record
+        if (last_state = @telemetry.last.state) != record.state
+          # The vehicle state has changed.
+          case :last_state
+          when :charging_ac
+          when :charging_dc
+          when :driving
+          end
+        end
+        @telemetry << record
+      end
     end
 
     def to_csv
