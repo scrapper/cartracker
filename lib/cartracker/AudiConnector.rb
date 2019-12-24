@@ -236,7 +236,6 @@ module CarTracker
       true
     end
 
-
     private
 
     def token_valid?
@@ -283,9 +282,7 @@ module CarTracker
             when '0x0101010001'
               if (ts = f['tsCarSentUtc'])
                 # The timestamp of the last successful transmission from the
-                # vehicle. It is labled as UTC and has a UTC timestamp.
-                # Unfortunately it is MET. So we strip the 'Z'.
-                ts = ts.tr('Z', '')
+                # vehicle.
                 record.set_last_vehicle_contact_time(ts)
               else
                 Log.warn "StoredVehicleDataResponse has no tsCarSentUtc " +
