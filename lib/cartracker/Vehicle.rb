@@ -19,16 +19,7 @@ module CarTracker
 
   class Vehicle < PEROBS::Object
 
-    attr_persist :vin, :telemetry, :rides, :charges, :next_server_sync
-
-    # Depending on the state the car is in we determine the frequency of the
-    # syncs with the server. These times are in minutes.
-    @@STANDARD_SYNC_PAUSE_TIMES = {
-      :parking => 30,
-      :driving => 10,
-      :charging_ac => 15,
-      :charging_dc => 5
-    }
+    attr_persist :vin, :telemetry, :rides, :charges, :next_server_sync_time, :server_sync_pause_mins
 
     def initialize(p)
       super(p)
@@ -39,18 +30,19 @@ module CarTracker
       self.telemetry = @store.new(PEROBS::BigArray) unless @telemetry
       self.rides = @store.new(PEROBS::BigArray) unless @rides
       self.charges = @store.new(PEROBS::BigArray) unless @charges
+      self.server_sync_pause_mins = 10 unless @server_sync_pause_mins
     end
 
     def add_record(record)
       # We only store the new record if at least one value differs from the
       # previous record (with the exception of the timestamp).
-      unless @telemetry.last == record
+      if @telemetry.last != record
+        update_next_poll_time(:shorter, record.state)
         @telemetry << record
         analyze_telemetry_record(@telemetry.length - 1)
+      else
+        update_next_poll_time(:longer)
       end
-
-      self.next_server_sync = Time.now +
-        @@STANDARD_SYNC_PAUSE_TIMES[record.state] * 60
     end
 
     def analyze_telemetry
@@ -179,6 +171,34 @@ module CarTracker
       charge.end_soc = end_record.soc
       charge.latitude = charge_record ? charge_record.latitude : nil
       charge.longitude = charge_record ? charge_record.longitude : nil
+    end
+
+    def update_next_poll_time(direction, state = nil)
+      pause_mins = @server_sync_pause_mins
+      if direction == :longer
+        hour = Time.now.hour
+        hourly_max_interval_mins = [
+          180, 180, 180, 180, 180, 90,
+          60, 30, 10, 10, 10, 10,
+          10, 10, 10, 10, 10, 10,
+          30, 30, 30, 90, 180, 180
+        ]
+        max_interval_mins = hourly_max_interval_mins[hour]
+        pause_mins = (pause_mins * 1.2).to_i
+        if pause_mins > max_interval_mins
+          pause_mins = max_interval_mins
+        end
+      else
+        pause_mins = (pause_mins / 1.2).to_i
+        limit = state == :charging_dc ? 2 : 5
+        if pause_mins < limit
+          pause_mins = limit
+        end
+      end
+
+      self.server_sync_pause_mins = pause_mins
+      self.next_server_sync_time = Time.now + pause_mins * 60
+      Log.info("Next server sync for #{@vin} is scheduled for #{@next_server_sync_time}")
     end
 
     def soc2energy(soc)
