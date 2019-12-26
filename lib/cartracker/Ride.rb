@@ -16,9 +16,9 @@ module CarTracker
   class Ride < PEROBS::Object
 
     attr_persist :start_timestamp, :start_soc,
-      :start_latitude, :start_longitude,
+      :start_latitude, :start_longitude, :start_odometer, :start_temperature,
       :end_timestamp, :end_soc, :end_latitude, :end_longitude,
-      :distance, :energy
+      :end_odometer, :end_temperature, :energy
 
     def initialize(p)
       super
@@ -30,8 +30,9 @@ module CarTracker
     def to_ary
       [
         @start_timestamp, @start_soc, @start_latitude, @start_longitude,
+        @start_odometer, @start_temperature,
         @end_timestamp, @end_soc, @end_latitude, @end_longitude,
-        @distance, @energy
+        @end_odometer, @end_temperature, @energy
       ]
     end
 

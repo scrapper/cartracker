@@ -145,15 +145,18 @@ module CarTracker
       energy = soc2energy(start_record.soc - end_record.soc)
       energy = 0.0 if energy < 0.0
       @rides << (ride = @store.new(Ride))
-      ride.start_timestamp = start_record.timestamp
+      ride.start_timestamp = start_record.last_vehicle_contact_time
       ride.start_soc = start_record.soc
       ride.start_latitude = start_record.latitude
       ride.start_longitude = start_record.longitude
-      ride.end_timestamp = end_record.timestamp
+      ride.start_odometer = start_record.odometer
+      ride.start_temperature = start_record.outside_temperature
+      ride.end_timestamp = end_record.last_vehicle_contact_time
       ride.end_soc = end_record.soc
       ride.end_latitude = end_record.latitude
       ride.end_longitude = end_record.longitude
-      ride.distance = end_record.odometer - start_record.odometer
+      ride.end_odometer = end_record.odometer
+      ride.end_temperature = end_record.outside_temperature
       ride.energy = energy
     end
 
