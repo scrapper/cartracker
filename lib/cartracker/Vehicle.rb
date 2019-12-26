@@ -159,7 +159,14 @@ module CarTracker
 
     def extract_charge(start_record, end_record, charge_record = nil)
       start_soc = charge_record ? charge_record.soc : start_record.soc
-      energy = soc2energy(end_record.soc - start_soc)
+      if (soc_delta = end_record.soc - start_soc) < 2 &&
+          (charge_record.nil? || charge_record.charging_mode == 'off')
+        # Small SoC increases can be caused by temperature variations.
+        # If we don't have a confirmation from the charging_mode field
+        # we don't count the increase as a charge cycle.
+        return
+      end
+      energy = soc2energy(soc_delta)
       energy = 0.0 if energy < 0.0
       @charges << (charge = @store.new(Charge))
       charge.energy = energy

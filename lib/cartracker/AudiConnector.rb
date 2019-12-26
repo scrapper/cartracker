@@ -135,8 +135,8 @@ module CarTracker
     end
 
     def list_vehicles
-      puts "VIN"
       @vehicles.each do |vin, vehicle|
+        puts "Vehicle #{vin}\n"
         puts vehicle.to_csv
         puts "\nRides\n"
         puts vehicle.list_rides
