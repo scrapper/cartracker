@@ -158,7 +158,8 @@ module CarTracker
     end
 
     def extract_charge(start_record, end_record, charge_record = nil)
-      start_soc = charge_record ? charge_record.soc : start_record.soc
+      start_soc = charge_record && charge_record.soc < start_record.soc ?
+        charge_record.soc : start_record.soc
       if (soc_delta = end_record.soc - start_soc) < 2 &&
           (charge_record.nil? || charge_record.charging_mode == 'off')
         # Small SoC increases can be caused by temperature variations.
