@@ -12,6 +12,7 @@
 require 'perobs'
 
 require 'cartracker/Log'
+require 'cartracker/FlexiTable'
 require 'cartracker/Charge'
 require 'cartracker/Ride'
 
@@ -54,11 +55,22 @@ module CarTracker
       end
     end
 
-    def list_rides
+    def dump_rides
       s = ''
       @rides.each { |r| s += r.to_ary.join(', ') + "\n" }
       s
     end
+
+    def list_rides
+      t = FlexiTable.new
+      t.head
+      Ride::table_header(t)
+      t.body
+      @rides.each { |ride| ride.table_row(t) }
+
+      t
+    end
+
 
     def list_charges
       s = ''
@@ -145,13 +157,19 @@ module CarTracker
       energy = soc2energy(start_record.soc - end_record.soc)
       energy = 0.0 if energy < 0.0
       @rides << (ride = @store.new(Ride))
-      ride.start_timestamp = start_record.last_vehicle_contact_time
-      ride.start_soc = start_record.soc
+      ride.vehicle = myself
+      ride.start_timestamp = start_record.last_vehicle_contact_time ||
+        start_record.timestamp
+      # If the SOC increased during a ride we ignore the increase and use
+      # end SOC for both values.
+      ride.start_soc = end_record.soc < start_record.soc ?
+        start_record.soc : end_record.soc
       ride.start_latitude = start_record.latitude
       ride.start_longitude = start_record.longitude
       ride.start_odometer = start_record.odometer
       ride.start_temperature = start_record.outside_temperature
-      ride.end_timestamp = end_record.last_vehicle_contact_time
+      ride.end_timestamp = end_record.last_vehicle_contact_time ||
+        end_record.timestamp
       ride.end_soc = end_record.soc
       ride.end_latitude = end_record.latitude
       ride.end_longitude = end_record.longitude

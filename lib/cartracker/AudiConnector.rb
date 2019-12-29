@@ -124,6 +124,10 @@ module CarTracker
         end
       end
 
+      unless @default_vehicle
+        self.default_vehicle = @vehicles.first[1]
+      end
+
       true
     end
 
@@ -139,10 +143,15 @@ module CarTracker
         puts "Vehicle #{vin}\n"
         puts vehicle.to_csv
         puts "\nRides\n"
-        puts vehicle.list_rides
+        puts vehicle.dump_rides
         puts "\nCharges\n"
         puts vehicle.list_charges
       end
+    end
+
+    def list_rides(vin = nil)
+      vehicle = @vehicles[vin] || @default_vehicle
+      puts vehicle.list_rides
     end
 
     def update_vehicles
