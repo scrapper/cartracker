@@ -139,6 +139,16 @@ module CarTracker
     def set_position(latitude, longitude)
       # Latitude and longitude are stored in a millions of a degree.
       latitude = latitude.to_i
+
+      if latitude == -134217726 || longitude == -134217726
+        # This value is sent if the GPS did not properly transfer the current
+        # position to the telemetry system.
+        self.latitude = nil
+        self.longitude = nil
+
+        true
+      end
+
       if latitude < -90000000 || latitude > 90000000
         Log.warn "Latitude is out of range: #{latitude / 1000000.0}"
         return false
