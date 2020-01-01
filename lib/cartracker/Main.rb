@@ -39,6 +39,8 @@ module CarTracker
           ac.update_vehicles
         when 'list'
           ac.list_vehicles
+        when 'list_rides'
+          ac.list_rides
         when 'sync'
           ac.sync_vehicles
         else

@@ -145,7 +145,7 @@ module CarTracker
       end
 
       longitude = longitude.to_i
-      if longitude < 0 || longitude > 360000000
+      if longitude < -180000000 || longitude > 1800000000
         Log.warn "Longitude is out of range: #{longitude / 1000000.0}"
         return false
       end

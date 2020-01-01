@@ -124,6 +124,10 @@ module CarTracker
         end
       end
 
+      unless @default_vehicle
+        self.default_vehicle = @vehicles.first[1]
+      end
+
       true
     end
 
@@ -135,14 +139,19 @@ module CarTracker
     end
 
     def list_vehicles
-      puts "VIN"
       @vehicles.each do |vin, vehicle|
+        puts "Vehicle #{vin}\n"
         puts vehicle.to_csv
         puts "\nRides\n"
-        puts vehicle.list_rides
+        puts vehicle.dump_rides
         puts "\nCharges\n"
         puts vehicle.list_charges
       end
+    end
+
+    def list_rides(vin = nil)
+      vehicle = @vehicles[vin] || @default_vehicle
+      puts vehicle.list_rides
     end
 
     def update_vehicles
@@ -158,7 +167,7 @@ module CarTracker
       # The timestamp for the next server sync of this vehicle determines if
       # we actually connect to the server or not. If we are still in the pause
       # period we abort the update.
-      if vehicle.next_server_sync && Time.now < vehicle.next_server_sync - 10
+      if vehicle.next_server_sync_time && Time.now < vehicle.next_server_sync_time - 10
         return
       end
 

@@ -12,6 +12,7 @@
 require 'perobs'
 
 require 'cartracker/Log'
+require 'cartracker/FlexiTable'
 require 'cartracker/Charge'
 require 'cartracker/Ride'
 
@@ -19,16 +20,7 @@ module CarTracker
 
   class Vehicle < PEROBS::Object
 
-    attr_persist :vin, :telemetry, :rides, :charges, :next_server_sync
-
-    # Depending on the state the car is in we determine the frequency of the
-    # syncs with the server. These times are in minutes.
-    @@STANDARD_SYNC_PAUSE_TIMES = {
-      :parking => 30,
-      :driving => 10,
-      :charging_ac => 15,
-      :charging_dc => 5
-    }
+    attr_persist :vin, :telemetry, :rides, :charges, :next_server_sync_time, :server_sync_pause_mins
 
     def initialize(p)
       super(p)
@@ -39,18 +31,19 @@ module CarTracker
       self.telemetry = @store.new(PEROBS::BigArray) unless @telemetry
       self.rides = @store.new(PEROBS::BigArray) unless @rides
       self.charges = @store.new(PEROBS::BigArray) unless @charges
+      self.server_sync_pause_mins = 10 unless @server_sync_pause_mins
     end
 
     def add_record(record)
       # We only store the new record if at least one value differs from the
       # previous record (with the exception of the timestamp).
-      unless @telemetry.last == record
+      if @telemetry.last != record
+        update_next_poll_time(:shorter, record.state)
         @telemetry << record
         analyze_telemetry_record(@telemetry.length - 1)
+      else
+        update_next_poll_time(:longer)
       end
-
-      self.next_server_sync = Time.now +
-        @@STANDARD_SYNC_PAUSE_TIMES[record.state] * 60
     end
 
     def analyze_telemetry
@@ -62,11 +55,22 @@ module CarTracker
       end
     end
 
-    def list_rides
+    def dump_rides
       s = ''
       @rides.each { |r| s += r.to_ary.join(', ') + "\n" }
       s
     end
+
+    def list_rides
+      t = FlexiTable.new
+      t.head
+      Ride::table_header(t)
+      t.body
+      @rides.each { |ride| ride.table_row(t) }
+
+      t
+    end
+
 
     def list_charges
       s = ''
@@ -154,21 +158,38 @@ module CarTracker
       energy = soc2energy(start_record.soc - end_record.soc)
       energy = 0.0 if energy < 0.0
       @rides << (ride = @store.new(Ride))
-      ride.start_timestamp = start_record.timestamp
-      ride.start_soc = start_record.soc
+      ride.vehicle = myself
+      ride.start_timestamp = start_record.last_vehicle_contact_time ||
+        start_record.timestamp
+      # If the SOC increased during a ride we ignore the increase and use
+      # end SOC for both values.
+      ride.start_soc = end_record.soc < start_record.soc ?
+        start_record.soc : end_record.soc
       ride.start_latitude = start_record.latitude
       ride.start_longitude = start_record.longitude
-      ride.end_timestamp = end_record.timestamp
+      ride.start_odometer = start_record.odometer
+      ride.start_temperature = start_record.outside_temperature
+      ride.end_timestamp = end_record.last_vehicle_contact_time ||
+        end_record.timestamp
       ride.end_soc = end_record.soc
       ride.end_latitude = end_record.latitude
       ride.end_longitude = end_record.longitude
-      ride.distance = end_record.odometer - start_record.odometer
+      ride.end_odometer = end_record.odometer
+      ride.end_temperature = end_record.outside_temperature
       ride.energy = energy
     end
 
     def extract_charge(start_record, end_record, charge_record = nil)
-      start_soc = charge_record ? charge_record.soc : start_record.soc
-      energy = soc2energy(end_record.soc - start_soc)
+      start_soc = charge_record && charge_record.soc < start_record.soc ?
+        charge_record.soc : start_record.soc
+      if (soc_delta = end_record.soc - start_soc) < 2 &&
+          (charge_record.nil? || charge_record.charging_mode == 'off')
+        # Small SoC increases can be caused by temperature variations.
+        # If we don't have a confirmation from the charging_mode field
+        # we don't count the increase as a charge cycle.
+        return
+      end
+      energy = soc2energy(soc_delta)
       energy = 0.0 if energy < 0.0
       @charges << (charge = @store.new(Charge))
       charge.energy = energy
@@ -180,6 +201,31 @@ module CarTracker
       charge.end_soc = end_record.soc
       charge.latitude = charge_record ? charge_record.latitude : nil
       charge.longitude = charge_record ? charge_record.longitude : nil
+    end
+
+    def update_next_poll_time(direction, state = nil)
+      pause_mins = @server_sync_pause_mins
+      if direction == :longer
+        hour = Time.now.hour
+        hourly_max_interval_mins = [
+          180, 180, 180, 180, 180, 90,
+          60, 30, 15, 15, 15, 15,
+          15, 15, 15, 15, 15, 15,
+          30, 30, 30, 90, 180, 180
+        ]
+        max_interval_mins = hourly_max_interval_mins[hour]
+        pause_mins = (pause_mins * 1.5).to_i
+        if pause_mins > max_interval_mins
+          pause_mins = max_interval_mins
+        end
+      else
+        # Immediately go to minimum paus time case on current state of the vehicle.
+        pause_mins = state == :charging_dc ? 2 : 5
+      end
+
+      self.server_sync_pause_mins = pause_mins
+      self.next_server_sync_time = Time.now + pause_mins * 60
+      Log.info("Next server sync for #{@vin} is scheduled for #{@next_server_sync_time}")
     end
 
     def soc2energy(soc)
