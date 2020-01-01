@@ -28,7 +28,13 @@ module CarTracker
 
     def Ride::table_header(t)
       t.row([ 'Date', 'Duration', 'Distance', 'Consumption' ])
-      t.set_column_attributes([ { :halign => :left } ]  + [ { :halign => :right } ] * 3)
+      t.set_column_attributes(
+        [
+          { :halign => :left },
+          { :halign => :right },
+          { :halign => :right },
+          { :halign => :right, :format => Proc.new { |v| '%.1f' % v }}
+        ])
     end
 
     def restore
@@ -41,7 +47,7 @@ module CarTracker
       distance = @end_odometer - @start_odometer
       t.cell(distance)
       energy = @vehicle.soc2energy(@start_soc - @end_soc)
-      t.cell("%.1f" % (energy / (distance / 100.0)))
+      t.cell(energy / (distance / 100.0))
     end
 
     def to_ary

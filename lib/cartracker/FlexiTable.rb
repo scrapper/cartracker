@@ -22,6 +22,7 @@ module CarTracker
         @min_terminal_width = nil
         @halign = nil
         @width = nil
+        @format = nil
 
         attrs.each do |name, value|
           ivar_name = '@' + name.to_s
@@ -47,6 +48,7 @@ module CarTracker
         @table = table
         @row = row
         @content = content
+        @printable_content = nil
         @attributes = attributes
 
         @column_index = nil
@@ -54,7 +56,8 @@ module CarTracker
       end
 
       def min_terminal_width
-        @content.to_s.length
+        eval_content
+        @printable_content.length
       end
 
       def set_indicies(col_idx, row_idx)
@@ -63,7 +66,9 @@ module CarTracker
       end
 
       def to_s
-        s = @content.to_s
+        eval_content
+        s = @printable_content
+
         width = get_attribute(:min_terminal_width)
         case get_attribute(:halign)
         when :left, nil
@@ -87,6 +92,18 @@ module CarTracker
           @row.attributes[name] ||
           (@table.column_attributes[@column_index] ?
            @table.column_attributes[@column_index][name] : nil)
+      end
+
+      def eval_content
+        unless @printable_content
+          if @row.is_header?
+            @printable_content = @content.to_s
+          else
+            format = get_attribute(:format)
+            @printable_content = format ?
+              format.call(@content) : @content.to_s
+          end
+        end
       end
 
     end
@@ -115,6 +132,10 @@ module CarTracker
 
       def set_row_attributes(attributes)
         @attributes = Attributes.new(attributes)
+      end
+
+      def is_header?
+        @table.is_header?(self)
       end
 
       def to_s
@@ -203,6 +224,10 @@ module CarTracker
               "new_row call."
       end
       @current_row.set_row_attributes(row_attributes)
+    end
+
+    def is_header?(row)
+      @head_rows.include?(row)
     end
 
     def enable_frame(enabled)
