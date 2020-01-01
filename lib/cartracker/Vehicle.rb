@@ -143,8 +143,9 @@ module CarTracker
           extract_ride(r1, r0)
         elsif r0.soc > r1.soc
           # We are missing a charging record in the telemetry data. Let's try
-          # to reconstruct it.
-          extract_charge(r1, r0)
+          # to reconstruct it. In case the car wasn't moved we use the
+          # position data if available.
+          extract_charge(r1, r0, r1.odometer == r0.odometer ? r1 : nil)
         end
       end
     end
@@ -172,7 +173,7 @@ module CarTracker
       @charges << (charge = @store.new(Charge))
       charge.energy = energy
       charge.type = charge_record.nil? ? 'AC' :
-        charge_record.state == :charging_ac ? 'AC' : 'DC'
+        charge_record.state == :charging_dc ? 'DC' : 'AC'
       charge.start_timestamp = start_record.timestamp
       charge.start_soc = start_soc
       charge.end_timestamp = end_record.timestamp
