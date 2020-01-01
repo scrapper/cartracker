@@ -87,8 +87,8 @@ module CarTracker
     private
 
     def analyze_telemetry_record(index)
-      # We need at least 3 previous entries for a meaningful result.
-      return if index < 2
+      # We need at least 3 entries for a meaningful result.
+      return if index <= 2
 
       # Index    State  idx    record
       # index-5    A
@@ -97,59 +97,36 @@ module CarTracker
       # index-2    B
       # index-1    B    idx1   r1
       # index      C    index  r0
-      # r1 and r2 can be identical or any number of indicies apart.
+      # r1 and r2 can be identical or any number of indicies apart. r3 is
+      # identical to r1 and r2 if r1 and r2 are the same.
 
       r0 = @telemetry[index]
       r1 = @telemetry[idx1 = index - 1]
       state = r1.state
-      if state != r0.state
+      if state_changed?(r1, r0)
         # Find the index of the end of state before the last state
-        idx3 = idx1
-        while idx3 > 0 && @telemetry[idx3].state == state
-          idx3 -= 1
+        r3 = @telemetry[idx3 = idx1 - 1]
+        while !state_changed?(r3, r1)
+          r3 = @telemetry[idx3 -= 1]
         end
-        idx2 = @telemetry[idx3].state != @telemetry[idx3 + 1].state ?
-          idx3 + 1 : idx3
-        r2 = @telemetry[idx2]
-        r3 = @telemetry[idx3]
+        if idx3 == idx1 - 1
+          # We have not found a block of records with the same state after the
+          # current record. In this case r1, r2, and r3 point to the record
+          # right after the current record.
+          idx2 = idx3 = idx1
+          r2 = r3 = r1
+        else
+          # We have found a block of at least 2 consecutive records with the
+          # same state.
+          idx2 = idx3 + 1
+          r2 = @telemetry[idx2]
+        end
 
-        # The vehicle state has changed.
-        case state
-        when :charging_ac, :charging_dc
-          extract_charge(r3, r0, r2)
-          if r3.state == :parking && r2.odometer > r3.odometer
-            # We are missing a ride in the telemetry right before reaching the
-            # charing station. Let's try to reconstruct it.
-            extract_ride(r3, r2)
-          end
-          if r0.state == :parking && r0.odometer > r1.odometer
-            # We are missing a ride in the telemetry right after the charing.
-            # Let's try to reconstruct it.
-            extract_ride(r1, r2)
-          end
-        when :driving
-          extract_ride(r3, r0)
-          if r3.state == :parking && r2.soc > r3.soc
-            # We are missing a charge in the telemetry data right before the
-            # ride. Let's try to reconstruct it.
-            extract_charge(r3, r2)
-          end
-          if r0.state == :parking && r0.soc > r1.soc
-            # We are missing a charge in the telemetry data right after the
-            # ride. Let's try to reconstruct it.
-            extract_charge(r1, r0)
-          end
+        if r0.odometer > r2.odometer
+          extract_ride(r2, r0)
         end
-      elsif r0.state == :parking && r1.state == :parking
-        if r0.odometer > r1.odometer
-          # We are missing a driving record in the telemetry data. Let's try to
-          # reconstruct it.
-          extract_ride(r1, r0)
-        elsif r0.soc > r1.soc
-          # We are missing a charging record in the telemetry data. Let's try
-          # to reconstruct it. In case the car wasn't moved we use the
-          # position data if available.
-          extract_charge(r1, r0, r1.odometer == r0.odometer ? r1 : nil)
+        if r0.soc > r2.soc
+          extract_charge(r2, r0, r2)
         end
       end
     end
@@ -226,6 +203,13 @@ module CarTracker
       self.server_sync_pause_mins = pause_mins
       self.next_server_sync_time = Time.now + pause_mins * 60
       Log.info("Next server sync for #{@vin} is scheduled for #{@next_server_sync_time}")
+    end
+
+    def state_changed?(first_record, second_record)
+      first_record.state != (state = second_record.state) ||
+        (state != :driving && first_record.odometer < second_record.odometer) ||
+        ((state != :charging_ac || state == :charging_dc) &&
+         first_record.soc < second_record.soc)
     end
 
     def soc2energy(soc)
