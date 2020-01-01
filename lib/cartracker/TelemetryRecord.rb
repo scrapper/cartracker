@@ -146,7 +146,7 @@ module CarTracker
         self.latitude = nil
         self.longitude = nil
 
-        true
+        return true
       end
 
       if latitude < -90000000 || latitude > 90000000
