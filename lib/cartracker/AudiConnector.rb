@@ -167,7 +167,8 @@ module CarTracker
       # The timestamp for the next server sync of this vehicle determines if
       # we actually connect to the server or not. If we are still in the pause
       # period we abort the update.
-      if vehicle.next_server_sync_time && Time.now < vehicle.next_server_sync_time - 10
+      if vehicle.next_server_sync_time &&
+         Time.now < vehicle.next_server_sync_time - 10
         return
       end
 
@@ -262,16 +263,17 @@ module CarTracker
       url = @base_url + "bs/vsr/v1/Audi/DE/vehicles/#{vin}/status"
       return false unless (data = connect_request(url))
 
-      unless data.is_a?(Hash) && data['StoredVehicleDataResponse'] &&
-          data['StoredVehicleDataResponse']['vehicleData'] &&
-          data['StoredVehicleDataResponse']['vehicleData']['data'] &&
-          data['StoredVehicleDataResponse']['vehicleData']['data'].is_a?(Array)
-        Log.warn "StoredVehicleDataResponse data is corrupted"
+      unless data.is_a?(Hash) &&
+          (response = data['StoredVehicleDataResponse']) &&
+          (vehicle_data = response['vehicleData']) &&
+          (svdr_data = vehicle_data['data']) && svdr_data.is_a?(Array)
+        Log.warn "StoredVehicleDataResponse data is corrupted: #{response}"
         return false
       end
-      data['StoredVehicleDataResponse']['vehicleData']['data'].each do |d|
+      svdr_data.each do |d|
         unless d.include?('id')
-          Log.warn 'StoredVehicleDataResponse data does not contain an id'
+          Log.warn "StoredVehicleDataResponse data does not contain an id: " +
+            d
           return false
         end
 
