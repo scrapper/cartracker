@@ -111,7 +111,6 @@ module CarTracker
       r1 = @telemetry[idx1 = index - 1]
       state = r1.state
       if state_changed?(r1, r0)
-        puts "state changed between #{r1.timestamp} and #{r0.timestamp}"
         # Find the index of the end of state before the last state
         r3 = @telemetry[idx3 = idx1 - 1]
         while !state_changed?(r3, r1)
@@ -119,7 +118,6 @@ module CarTracker
         end
         idx2 = idx3 + 1
         r2 = @telemetry[idx2]
-        puts "block ended at #{r2.timestamp}"
 
         if r0.odometer > r2.odometer
           extract_ride(r2, r0, rgc)
