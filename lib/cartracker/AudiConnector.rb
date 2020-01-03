@@ -133,9 +133,9 @@ module CarTracker
       true
     end
 
-    def analyze_telemetry
+    def analyze_telemetry(rgc)
       @vehicles.each do |vin, vehicle|
-        vehicle.analyze_telemetry
+        vehicle.analyze_telemetry(rgc)
       end
       @store.gc
     end
@@ -147,13 +147,18 @@ module CarTracker
         puts "\nRides\n"
         puts vehicle.dump_rides
         puts "\nCharges\n"
-        puts vehicle.list_charges
+        puts vehicle.dump_charges
       end
     end
 
     def list_rides(vin = nil)
       vehicle = @vehicles[vin] || @default_vehicle
       puts vehicle.list_rides
+    end
+
+    def list_charges(vin = nil)
+      vehicle = @vehicles[vin] || @default_vehicle
+      puts vehicle.list_charges
     end
 
     def update_vehicles(rgc)

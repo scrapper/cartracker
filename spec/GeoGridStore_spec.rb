@@ -42,23 +42,23 @@ describe CarTracker::GeoGridStore do
     }
     expect(@ggs.by_latitude.length).to eql(5)
     @ggs.by_latitude.each do |idx, lon_row|
-      expect(lon_row.length).to eql(lat_row_lengths[idx])
+      expect(lon_row.length).to eql(lat_row_lengths[idx.to_i])
     end
   end
 
   it 'should find all records by their exact coordinates' do
     @records.each do |r|
-      expect(@ggs.look_up(r.latitude, r.longitude)).to be(r)
+      expect(@ggs.look_up(r.latitude, r.longitude, 200)).to be(r)
     end
   end
 
   it 'should find a record with a close-by coordinate' do
-    record = @ggs.look_up(48.1205901, 11.5138059)
+    record = @ggs.look_up(48.1205901, 11.5138059, 200)
     expect(record.street).to eql('Preßburger Straße')
   end
 
   it 'should not find a record for coordinates that are too far away' do
-    expect(@ggs.look_up(48.1225901, 11.5138059)).to be_nil
+    expect(@ggs.look_up(48.1225901, 11.5138059, 1)).to be_nil
   end
 
 end

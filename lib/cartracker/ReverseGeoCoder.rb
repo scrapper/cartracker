@@ -34,10 +34,11 @@ module CarTracker
     end
 
     def map_to_address(latitude, longitude)
-      if (record = @geo_coder.look_up(latitude, longitude))
+      if (record = @geo_coder.look_up(latitude, longitude, 200))
         return record
       end
 
+      return nil
       answer = request_from_nominatim(latitude, longitude)
       @geo_coder.add(answer)
     end

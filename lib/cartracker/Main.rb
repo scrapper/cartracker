@@ -35,11 +35,13 @@ module CarTracker
 
         case argv[0]
         when 'analyze'
-          ac.analyze_telemetry
+          ac.analyze_telemetry(rgc)
         when 'update'
           ac.update_vehicles(rgc)
         when 'list'
           ac.list_vehicles
+        when 'list_charges'
+          ac.list_charges
         when 'list_rides'
           ac.list_rides
         when 'sync'

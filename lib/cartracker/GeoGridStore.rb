@@ -32,7 +32,6 @@ module CarTracker
     end
 
     def add(json)
-
       r = @store.new(NominatimRecord)
       r.nominatim_response = json
       begin
@@ -44,11 +43,11 @@ module CarTracker
       lat_idx = lat_to_idx(r.latitude)
       lon_idx = lon_to_idx(r.longitude)
 
-      unless (lat_row = @by_latitude[lat_idx])
-        @by_latitude[lat_idx] = lat_row = @store.new(PEROBS::Hash)
+      unless (lat_row = @by_latitude[lat_idx.to_s])
+        @by_latitude[lat_idx.to_s] = lat_row = @store.new(PEROBS::Hash)
       end
-      unless (lon_row = lat_row[lon_idx])
-        lat_row[lon_idx] = lon_row = @store.new(PEROBS::Array)
+      unless (lon_row = lat_row[lon_idx.to_s])
+        lat_row[lon_idx.to_s] = lon_row = @store.new(PEROBS::Array)
       end
 
       lon_row << r
@@ -56,7 +55,23 @@ module CarTracker
       r
     end
 
-    def look_up(latitude, longitude)
+    def each(&block)
+      @by_latitude.each do |lat_idx, lat_row|
+        lat_row.each do |lon_idx, lon_row|
+          lon_row.each do |record|
+            yield(record)
+          end
+        end
+      end
+    end
+
+    def size
+      i = 0
+      each { |r| i += 1 }
+      i
+    end
+
+    def look_up(latitude, longitude, max_distance)
       if latitude < -90.0 || latitude > 90.0
         raise ArgumentError, "latitude out of range: #{latitude}"
       end
@@ -72,15 +87,16 @@ module CarTracker
 
       (lat_idx - 1).upto(lat_idx + 1) do |lati|
         (lon_idx - 1).upto(lon_idx + 1) do |loni|
-          if (lat_row = @by_latitude[lati]) &&
-              (lon_row = lat_row[loni])
+          if (lat_row = @by_latitude[lati.to_s]) &&
+              (lon_row = lat_row[loni.to_s])
             lon_row.each do |record|
               d = calc_distance(latitude, longitude, record.latitude,
                                 record.longitude)
-              # If the record location is within 50 meters of the given
-              # location and closer than the so far closest record we assign
-              # the current record as the closest record.
-              if d < 50 && (closest_distance.nil? || closest_distance > d)
+              # If the record location is within max_distance meters of the
+              # given location and closer than the so far closest record we
+              # assign the current record as the closest record.
+              if d <= max_distance &&
+                  (closest_distance.nil? || closest_distance > d)
                 closest_record = record
                 closest_distance = d
               end
