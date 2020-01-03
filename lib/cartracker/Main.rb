@@ -31,12 +31,13 @@ module CarTracker
         unless (ac = @db['AudiConnector'])
           ac = @db['AudiConnector'] = @db.new(AudiConnector)
         end
+        rgc = ReverseGeoCoder.new(@db)
 
         case argv[0]
         when 'analyze'
           ac.analyze_telemetry
         when 'update'
-          ac.update_vehicles
+          ac.update_vehicles(rgc)
         when 'list'
           ac.list_vehicles
         when 'list_rides'

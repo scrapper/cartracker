@@ -34,13 +34,13 @@ module CarTracker
       self.server_sync_pause_mins = 10 unless @server_sync_pause_mins
     end
 
-    def add_record(record)
+    def add_record(record, rgc)
       # We only store the new record if at least one value differs from the
       # previous record (with the exception of the timestamp).
       if @telemetry.last != record
         update_next_poll_time(:shorter, record.state)
         @telemetry << record
-        analyze_telemetry_record(@telemetry.length - 1)
+        analyze_telemetry_record(@telemetry.length - 1, rgc)
       else
         update_next_poll_time(:longer)
       end
@@ -86,7 +86,7 @@ module CarTracker
 
     private
 
-    def analyze_telemetry_record(index)
+    def analyze_telemetry_record(index, rgc)
       # We need at least 3 entries for a meaningful result.
       return if index <= 2
 
@@ -123,7 +123,7 @@ module CarTracker
         end
 
         if r0.odometer > r2.odometer
-          extract_ride(r2, r0)
+          extract_ride(r2, r0, rgc)
         end
         if r0.soc > r2.soc
           extract_charge(r2, r0, r2)
@@ -131,7 +131,7 @@ module CarTracker
       end
     end
 
-    def extract_ride(start_record, end_record)
+    def extract_ride(start_record, end_record, rgc)
       energy = soc2energy(start_record.soc - end_record.soc)
       energy = 0.0 if energy < 0.0
       @rides << (ride = @store.new(Ride))
@@ -144,6 +144,7 @@ module CarTracker
         start_record.soc : end_record.soc
       ride.start_latitude = start_record.latitude
       ride.start_longitude = start_record.longitude
+      ride.map_locations_to_addresses(rgc)
       ride.start_odometer = start_record.odometer
       ride.start_temperature = start_record.outside_temperature
       ride.end_timestamp = end_record.last_vehicle_contact_time ||

@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby -w
 # encoding: UTF-8
 #
-# = Main.rb -- CarTracker - Capture and analyze your EV telemetry.
+# = ReverseGeoCoder.rb -- CarTracker - Capture and analyze your EV telemetry.
 #
 # Copyright (c) 2019 by Chris Schlaeger <cs@taskjuggler.org>
 #
@@ -16,56 +16,41 @@ require 'json'
 
 require 'perobs'
 
-require 'version'
+require 'cartracker/version'
+require 'cartracker/NominatimRecord'
+require 'cartracker/GeoGridStore'
 
 module CarTracker
 
   class ReverseGeoCoder
 
-    class Record < PEROBS::Object
-
-      attr_persist :latitude, :longitude, :country, :city, :zip_code, :street,
-        :number
-
-      def initialize(p)
-        super
-      end
-
-    end
-
-    class GridStore < PEROBS::Object
-
-      attr_persist :by_latitude
-
-      def initialize(p)
-        super
-        restore
-      end
-
-      def restore
-        unless @by_latitude
-          self.by_latitude = @store.new(PEROBS::Hash)
-        end
-      end
-
-      def store(record)
-        lat_idx
-      end
-
-      def look_up(latitude, longitude)
-      end
-
-    end
-
     def initialize(store)
       @store = store
       unless @store['ReverseGeoCoderCache']
-        @store['ReverseGeoCoderCache'] = @store.new(GridStore)
+        @store['ReverseGeoCoderCache'] = @store.new(GeoGridStore)
       end
+      @geo_coder = @store['ReverseGeoCoderCache']
+      @last_request_timestamp = nil
     end
 
     def map_to_address(latitude, longitude)
-      args = "format=json&lat=#{latitude / 1000000.0}&lon=#{longitude / 1000000.0}"
+      if (record = @geo_coder.look_up(latitude, longitude))
+        return record
+      end
+
+      answer = request_from_nominatim(latitude, longitude)
+      @geo_coder.add(answer)
+    end
+
+    def request_from_nominatim(latitude, longitude)
+      # Implement a rate limit of not more than 1 request per second according
+      # to nominatim usage guidelines.
+      if @last_request_timestamp && @last_request_timestamp > Time.now - 1.0
+        sleep(1)
+      end
+      @last_request_timestamp = Time.now
+
+      args = "format=json&lat=#{latitude}&lon=#{longitude}"
       request_header = {
         'Accept' => 'application/json',
         'User-Agent' => "CarTracker/#{VERSION}"
@@ -77,21 +62,10 @@ module CarTracker
 
       request = Net::HTTP::Get.new(uri, request_header)
 
-      answer = http.request(request)
-
-      json = JSON.parse(http.body)
-      if (address = json['address'])
-        puts address.road
-        puts address.city
-      else
-        Log.error "Response from #{uri.host} does not contain an address: #{json.inspect}"
-        return nil
-      end
+      http.request(request).body
     end
 
   end
 
-  rgc = ReverseGeoCoder.new(nil)
-  rgc.map_to_address(49470810, 11074698)
 end
 

@@ -44,7 +44,8 @@ module CarTracker
         'X-Platform': 'google',
         'User-Agent': 'okhttp/2.7.4',
         'ADRUM_1': 'isModule:true',
-        'ADRUM': 'isAray:true'
+        'ADRUM': 'isAray:true',
+        'X-Market': 'de_DE'
       }
 
       # Make sure we have an authentication token that is valid for at least
@@ -56,6 +57,7 @@ module CarTracker
       end
 
       @request_header['Authorization'] = "AudiAuth 1 #{@token}"
+      #@request_header['Authorization'] = "Bearer #{@token}"
 
       if @vehicles.nil? || @vehicles.empty? || @last_vehicle_list_update.nil? ||
           @last_vehicle_list_update < Time.now - 60 * 60 * 24
@@ -68,7 +70,7 @@ module CarTracker
 
     def authenticate
       url = @base_url + 'core/auth/v1/Audi/DE/token'
-      uri = URI.parse(url)
+      uri = URI(url)
       if @username.nil? || @password.nil?
         Log.warn 'No login credentials stored in database. Requesting ' +
           'from user.'
@@ -154,16 +156,17 @@ module CarTracker
       puts vehicle.list_rides
     end
 
-    def update_vehicles
+    def update_vehicles(rgc)
       @vehicles.each do |vin, vehicle|
-        update_vehicle(vin)
+        update_vehicle(vin, rgc)
       end
     end
 
-    def update_vehicle(vin)
+    def update_vehicle(vin, rgc)
       return unless token_valid?
 
       vehicle = @vehicles[vin]
+
       # The timestamp for the next server sync of this vehicle determines if
       # we actually connect to the server or not. If we are still in the pause
       # period we abort the update.
@@ -177,7 +180,7 @@ module CarTracker
       if get_vehicle_status(vehicle, record) &&
           get_vehicle_position(vehicle, record) &&
           get_vehicle_charger(vehicle, record)
-        vehicle.add_record(record)
+        vehicle.add_record(record, rgc)
       end
 
       #url = @base_url + "bs/climatisation/v1/Audi/DE/vehicles/#{vin}/climater"
@@ -196,7 +199,7 @@ module CarTracker
       # The direct communication with the car is strongly rate limited. Only a
       # few calls per day are allowed.
       url = @base_url + "bs/vsr/v1/Audi/DE/vehicles/#{vin}/requests"
-      uri = URI.parse(url)
+      uri = URI(url)
 
       response = post_request(uri)
       if response.code == '202'
@@ -362,6 +365,15 @@ module CarTracker
       false
     end
 
+    def get_tripdata(vehicle, record)
+      vin = vehicle.vin
+      url = @base_url + "bs/tripstatistics/v1/Audi/DE/vehicles/#{vin}/tripdata/longTerm?type=list"
+
+      return false unless (data = connect_request(url))
+
+      pp data
+    end
+
     def get_vehicle_charger(vehicle, record)
       vin = vehicle.vin
       url = @base_url + "bs/batterycharge/v1/Audi/DE/vehicles/#{vin}/charger"
@@ -398,7 +410,7 @@ module CarTracker
     end
 
     def connect_request(url)
-      uri = URI.parse(url)
+      uri = URI(url)
 
       response = get_request(uri)
       case response.code.to_i
@@ -417,7 +429,7 @@ module CarTracker
       http.use_ssl = true
       http.verify_mode = OpenSSL::SSL::VERIFY_PEER
 
-      request = Net::HTTP::Post.new(uri.path, @request_header)
+      request = Net::HTTP::Post.new(uri, @request_header)
       request.set_form_data(form_data)
 
       http.request(request)
@@ -428,7 +440,7 @@ module CarTracker
       http.use_ssl = true
       http.verify_mode = OpenSSL::SSL::VERIFY_PEER
 
-      request = Net::HTTP::Get.new(uri.path, @request_header)
+      request = Net::HTTP::Get.new(uri, @request_header)
 
       http.request(request)
     end

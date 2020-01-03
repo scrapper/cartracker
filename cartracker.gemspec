@@ -4,7 +4,7 @@ require "cartracker/version"
 
 Gem::Specification.new do |spec|
   spec.name          = "cartracker"
-  spec.version       = Cartracker::VERSION
+  spec.version       = CarTracker::VERSION
   spec.authors       = ["Chris Schlaeger"]
   spec.email         = ["chris@linux.com"]
 
