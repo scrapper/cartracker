@@ -39,8 +39,12 @@ module CarTracker
           { :halign => :left },
           { :halign => :right },
           { :halign => :left},
-          { :halign => :right, :format => Proc.new { |v| '%.1f' % v } },
-          { :halign => :right, :format => Proc.new { |v| '%.1f' % v } }
+          { :halign => :right,
+            :format => Proc.new { |v| '%.1f' % v },
+            :label => :ac},
+          { :halign => :right,
+            :format => Proc.new { |v| '%.1f' % v },
+            :label => :dc }
         ])
     end
 
@@ -57,6 +61,14 @@ module CarTracker
         t.cell(0.0)
         t.cell(@energy)
       end
+    end
+
+    def Charge::table_footer(t)
+      t.row( [
+        '', '', '', '',
+        Proc.new { t.sum(:ac, 0, :ac, -1) },
+        Proc.new { t.sum(:dc, 0, :dc, -1) }
+      ])
     end
 
     def to_ary

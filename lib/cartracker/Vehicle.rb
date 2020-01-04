@@ -73,6 +73,8 @@ module CarTracker
       Ride::table_header(t)
       t.body
       @rides.each { |ride| ride.table_row(t) }
+      t.foot
+      Ride::table_footer(t)
 
       t
     end
@@ -83,6 +85,8 @@ module CarTracker
       Charge::table_header(t)
       t.body
       @charges.each { |charge| charge.table_row(t) }
+      t.foot
+      Charge::table_footer(t)
 
       t
     end

@@ -48,15 +48,23 @@ module CarTracker
     end
 
     def Ride::table_header(t)
-      t.row([ 'Date', 'From', 'To', 'Duration', 'Distance', 'Consumption' ])
+      t.row([ 'Date', 'From', 'To', 'Duration', 'Distance', 'SoC',
+              'Energy', 'Energy/100km' ])
       t.set_column_attributes(
         [
           { :halign => :left },
           { :halign => :left },
           { :halign => :left },
-          { :halign => :right },
-          { :halign => :right },
-          { :halign => :right, :format => Proc.new { |v| '%.1f' % v }}
+          { :halign => :right,
+            :format => Proc.new { |v| secs2hms(v) },
+            :label => :duration },
+          { :halign => :right, :label => :distance },
+          { :halign => :left },
+          { :halign => :right,
+            :format => Proc.new { |v| '%.1f' % v },
+            :label => :energy },
+          { :halign => :right,
+            :format => Proc.new { |v| '%.1f' % v } }
         ])
     end
 
@@ -65,11 +73,24 @@ module CarTracker
       t.cell(@start_timestamp.strftime('%Y-%d-%m'))
       t.cell(location_to_s(@start_location))
       t.cell(location_to_s(@end_location))
-      t.cell(secs2hms(@end_timestamp - @start_timestamp))
+      t.cell(@end_timestamp - @start_timestamp)
       distance = @end_odometer - @start_odometer
       t.cell(distance)
+      t.cell("#{@start_soc} -> #{@end_soc}")
       energy = @vehicle.soc2energy(@start_soc - @end_soc)
+      t.cell(energy)
       t.cell(energy / (distance / 100.0))
+    end
+
+    def Ride::table_footer(t)
+      t.row( [
+        '', '', '',
+        Proc.new { t.sum(:duration, 0, :duration, -1) },
+        Proc.new { t.sum(:distance, 0, :distance, -1) },
+        '',
+        Proc.new { t.sum(:energy, 0, :energy, -1) },
+        Proc.new { t.foot_value(:energy, 0) / t.foot_value(:distance, 0) * 100 }
+      ])
     end
 
     def to_ary
@@ -81,9 +102,7 @@ module CarTracker
       ]
     end
 
-    private
-
-    def secs2hms(secs)
+    def Ride::secs2hms(secs)
       secs = secs.to_i
       s = secs % 60
       mins = secs / 60
@@ -91,6 +110,8 @@ module CarTracker
       h = mins / 60
       "#{h}:#{'%02d' % m}:#{'%02d' % s}"
     end
+
+    private
 
     def location_to_s(location)
       return '' unless location

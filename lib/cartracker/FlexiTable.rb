@@ -23,6 +23,7 @@ module CarTracker
         @halign = nil
         @width = nil
         @format = nil
+        @label = nil
 
         attrs.each do |name, value|
           ivar_name = '@' + name.to_s
@@ -48,6 +49,7 @@ module CarTracker
         @table = table
         @row = row
         @content = content
+        @value = nil
         @printable_content = nil
         @attributes = attributes
 
@@ -65,7 +67,15 @@ module CarTracker
         @row_index = row_idx
       end
 
+      def value
+        eval_content
+        @value
+      end
+
       def to_s
+        unless @column_index
+          raise "Cell #{@content.inspect} has no column index"
+        end
         eval_content
         s = @printable_content
 
@@ -100,8 +110,13 @@ module CarTracker
             @printable_content = @content.to_s
           else
             format = get_attribute(:format)
+            if @content.respond_to?('call')
+              @value = @content.call
+            else
+              @value = @content
+            end
             @printable_content = format ?
-              format.call(@content) : @content.to_s
+              format.call(@value.to_s) : @value.to_s
           end
         end
       end
@@ -175,10 +190,12 @@ module CarTracker
 
     def body
       @current_section = :body
+      @current_row = nil
     end
 
     def foot
       @current_section = :foot
+      @current_row = nil
     end
 
     def new_row
@@ -249,6 +266,62 @@ module CarTracker
       s
     end
 
+    # Return the index of the next cell to be added.
+    def column_label_to_idx(label)
+      @column_attributes.each_with_index do |attr, idx|
+        return idx if attr['label'] == label
+      end
+
+      nil
+    end
+
+    def iterate(start_col, start_row, end_col, end_row)
+      start_col_idx = check_and_fix_col_idx('Start column', start_col)
+      start_row_idx = check_and_fix_body_row_idx('Start row', start_row)
+      end_col_idx = check_and_fix_col_idx('End column', end_col)
+      end_row_idx = check_and_fix_body_row_idx('End row', end_row)
+
+      start_col_idx.upto(end_col_idx) do |col_idx|
+        start_row_idx.upto(end_row_idx) do |row_idx|
+          yield(@body_rows[row_idx][col_idx].value)
+        end
+      end
+    end
+
+    def value(col, row)
+      col_idx = check_and_fix_col_idx(col)
+      row_idx = check_and_fix_body_row_idx(row)
+
+      @body_rows[row_idx][col_idx].value
+    end
+
+    def foot_value(col, row)
+      col_idx = check_and_fix_col_idx('Column', col)
+      row_idx = check_and_fix_foot_row_idx('Row', row)
+
+      @foot_rows[row_idx][col_idx].value
+    end
+
+    def sum(start_col, start_row, end_col, end_row)
+      sum = 0
+      iterate(start_col, start_row, end_col, end_row) do |v|
+        sum += v
+      end
+
+      sum
+    end
+
+    def arithmetic_mean(start_col, start_row, end_col, end_row)
+      sum = 0
+      i = 0
+      iterate(start_col, start_row, end_col, end_row) do |v|
+        sum += v
+        i += 1
+      end
+
+      sum / i.to_f
+    end
+
     def index_table
       @column_count = (@head_rows[0] || @body_rows[0]).length
 
@@ -304,6 +377,48 @@ module CarTracker
         s += '-' * c.min_terminal_width + '+'
       end
       s + "\n"
+    end
+
+    private
+
+    def check_and_fix_col_idx(name, col)
+      col_idx = col.is_a?(Symbol) ? column_label_to_idx(col) : col
+
+      col_idx = @column_count + col_idx if col_idx < 0
+
+      max = [@column_count - 1, col_idx].min
+      if col_idx > max
+        raise ArgumentError, "#{name} index (#{col_idx}) must " +
+          "be smaller than #{max}"
+      end
+
+      col_idx
+    end
+
+    def check_and_fix_body_row_idx(name, row)
+      row_idx = row
+
+      row_idx = @body_rows.length + row_idx if row_idx < 0
+
+      if row_idx >= @body_rows.length
+        raise ArgumentError, "#{name} index (#{row_idx}) must " +
+          "be smaller than #{@body_rows.length}"
+      end
+
+      row_idx
+    end
+
+    def check_and_fix_foot_row_idx(name, row)
+      row_idx = row
+
+      row_idx = @foot_rows.length + row_idx if row_idx < 0
+
+      if row_idx >= @foot_rows.length
+        raise ArgumentError, "#{name} index (#{row_idx}) must " +
+          "be smaller than #{@foot_rows.length}"
+      end
+
+      row_idx
     end
 
   end
