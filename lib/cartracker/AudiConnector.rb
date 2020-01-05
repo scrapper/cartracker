@@ -307,7 +307,7 @@ module CarTracker
         end
 
         if %w(0x0101010001 0x0101010002 0x030102FFFF
-              0x030103FFFF).include?(d['id'])
+              0x030103FFFF 0x030104FFFF 0x030105FFFF).include?(d['id'])
           # Other potentially interesting sections:
           # 0x030104FFFF: Doors
           # 0x030105FFFF: Windows
@@ -347,6 +347,48 @@ module CarTracker
             when '0x0301030005'
               # Range (km)
               record.set_range(f['value'])
+            when '0x0301040001'
+              # Front left door lock/unlock
+              record.set_door_unlocked(:front_left, f['value'])
+            when '0x0301040002'
+              # Front left door open/closed
+              record.set_door_open(:front_left, f['value'])
+            when '0x0301040004'
+              # Rear left door lock/unlock
+              record.set_door_unlocked(:rear_left, f['value'])
+            when '0x0301040005'
+              # Rear left door open/closed
+              record.set_door_open(:rear_left, f['value'])
+            when '0x0301040007'
+              # Front right door lock/unlock
+              record.set_door_unlocked(:front_right, f['value'])
+            when '0x0301040008'
+              # Front right door open/closed
+              record.set_door_open(:front_right, f['value'])
+            when '0x030104000A'
+              # Rear right door lock/unlock
+              record.set_door_unlocked(:rear_right, f['value'])
+            when '0x030104000B'
+              # Rear right door open/closed
+              record.set_door_open(:rear_right, f['value'])
+            when '0x030104000D'
+              # Hatch door locked/unlocked
+              record.set_door_unlocked(:hatch, f['value'])
+            when '0x030104000E'
+              # Hatch door open/closed
+              record.set_door_open(:hatch, f['value'])
+            when '0x0301050001'
+              # Front left window
+              record.set_window_open(:front_left, f['value'])
+            when '0x0301050003'
+              # Rear left window
+              record.set_window_open(:rear_left, f['value'])
+            when '0x0301050005'
+              # Front right window
+              record.set_window_open(:front_right, f['value'])
+            when '0x0301050007'
+              # Rear right window
+              record.set_window_open(:rear_right, f['value'])
             end
           end
         end

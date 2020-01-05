@@ -38,7 +38,6 @@ module CarTracker
         return record
       end
 
-      return nil
       answer = request_from_nominatim(latitude, longitude)
       @geo_coder.add(answer)
     end

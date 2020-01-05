@@ -18,6 +18,7 @@ module CarTracker
 
     attr_persist :timestamp, :last_vehicle_contact_time,
       :odometer, :speed, :outside_temperature,
+      :doors_unlocked, :doors_open, :windows_open,
       :latitude, :longitude,
       :parking_brake_active, :soc, :range, :charging_mode, :charging_power
 
@@ -25,12 +26,18 @@ module CarTracker
       super
 
       self.timestamp = Time.now
+      self.doors_unlocked = 0
+      self.doors_open = 0
+      self.windows_open = 0
 
       restore
     end
 
     def restore
       self.speed = 0 if @speed.nil?
+      self.doors_unlocked = 0 unless @doors_unlocked
+      self.doors_open = 0 unless @doors_open
+      self.windows_open = 0 unless @windows_open
     end
 
     def ==(r)
@@ -124,6 +131,58 @@ module CarTracker
       true
     end
 
+    def set_door_unlocked(door, status)
+      status = status.to_i
+      case door
+      when :front_left
+        self.doors_unlocked |= 1 if status != 2
+      when :rear_left
+        self.doors_unlocked |= 2 if status != 2
+      when :front_right
+        self.doors_unlocked |= 4 if status != 2
+      when :rear_right
+        self.doors_unlocked |= 8 if status != 2
+      when :hatch
+        self.doors_unlocked |= 16 if status != 2
+      else
+        raise ArgumentError, "Unknown door type: #{door}"
+      end
+    end
+
+    def set_door_open(door, status)
+      status = status.to_i
+      case door
+      when :front_left
+        self.doors_open |= 1 if status != 3
+      when :rear_left
+        self.doors_open |= 2 if status != 3
+      when :front_right
+        self.doors_open |= 4 if status != 3
+      when :rear_right
+        self.doors_open |= 8 if status != 3
+      when :hatch
+        self.doors_open |= 16 if status != 3
+      else
+        raise ArgumentError, "Unknown door type: #{door}"
+      end
+    end
+
+    def set_window_open(window, status)
+      status = status.to_i
+      case window
+      when :front_left
+        self.windows_open |= 1 if status != 3
+      when :rear_left
+        self.windows_open |= 2 if status != 3
+      when :front_right
+        self.windows_open |= 4 if status != 3
+      when :rear_right
+        self.windows_open |= 8 if status != 3
+      else
+        raise ArgumentError, "Unknown window type: #{window}"
+      end
+    end
+
     def set_range(value)
       # The range is stored in km.
       range = value.to_i
@@ -188,6 +247,7 @@ module CarTracker
       [
         @timestamp, @last_vehicle_contact_time,
         @odometer, @speed, @outside_temperature,
+        @doors_unlocked, @doors_open, @windows_open,
         @latitude, @longitude,
         @parking_brake_active, @soc, @range, @charging_mode, @charging_power
       ].join(',')

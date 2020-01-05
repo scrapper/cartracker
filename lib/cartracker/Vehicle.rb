@@ -153,8 +153,11 @@ module CarTracker
         idx2 = idx3 + 1
         r2 = @telemetry[idx2]
 
-        if r0.odometer > r2.odometer
-          extract_ride(r2, r0, rgc)
+        if r0.odometer > r1.odometer
+          # Rides never show up as a block. If we have a block it's from a
+          # charging or parking period. So we always use r1 and r0 to
+          # determine the ride data.
+          extract_ride(r1, r0, rgc)
         end
         if r1.soc < (r0.soc - 1) && r1.charging_mode == 'off' &&
             r0.charging_mode == 'off'
@@ -182,7 +185,6 @@ module CarTracker
         start_record.soc : end_record.soc
       ride.start_latitude = start_record.latitude
       ride.start_longitude = start_record.longitude
-      ride.map_locations_to_addresses(rgc)
       ride.start_odometer = start_record.odometer
       ride.start_temperature = start_record.outside_temperature
       ride.end_timestamp = end_record.last_vehicle_contact_time ||
@@ -193,6 +195,7 @@ module CarTracker
       ride.end_odometer = end_record.odometer
       ride.end_temperature = end_record.outside_temperature
       ride.energy = energy
+      ride.map_locations_to_addresses(rgc)
     end
 
     def extract_charge(start_record, end_record, rgc)
