@@ -476,7 +476,7 @@ module CarTracker
       return unless @server_log
 
       File.open(@server_log, 'a') do |f|
-        f.write(msg)
+        f.puts msg
       end
     end
 
