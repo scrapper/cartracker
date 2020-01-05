@@ -26,6 +26,8 @@ module CarTracker
     attr_persist :username, :password, :token, :token_valid_until, :vehicles,
       :default_vehicle, :last_vehicle_list_update
 
+    attr_writer :server_log
+
     def initialize(p)
       super(p)
       restore
@@ -47,6 +49,7 @@ module CarTracker
         'ADRUM': 'isAray:true',
         'X-Market': 'de_DE'
       }
+      @server_log = nil
 
       # Make sure we have an authentication token that is valid for at least
       # 60 more seconds.
@@ -89,6 +92,7 @@ module CarTracker
 
       response = post_request(uri, form_data)
       if response.code == '200'
+        log_server_message(response.body)
         data = JSON.parse(response.body)
         self.token = data['access_token']
         self.token_valid_until = Time.now + data['expires_in']
@@ -217,6 +221,7 @@ module CarTracker
 
       response = post_request(uri)
       if response.code == '202'
+        log_server_message(response.body)
         data = JSON.parse(response.body)
         if data.is_a?(Hash) && data.include?('CurrentVehicleDataResponse') &&
             (cvdr = data['CurrentVehicleDataResponse']).is_a?(Hash) &&
@@ -429,6 +434,7 @@ module CarTracker
       response = get_request(uri)
       case response.code.to_i
       when 200
+        log_server_message(response.body)
         return JSON.parse(response.body)
       when 204
         return ''
@@ -457,6 +463,14 @@ module CarTracker
       request = Net::HTTP::Get.new(uri, @request_header)
 
       http.request(request)
+    end
+
+    def log_server_message(msg)
+      return unless @server_log
+
+      File.open(@server_log, 'a') do |f|
+        f.write(msg)
+      end
     end
 
   end

@@ -31,6 +31,7 @@ module CarTracker
         unless (ac = @db['AudiConnector'])
           ac = @db['AudiConnector'] = @db.new(AudiConnector)
         end
+        ac.server_log = File.join(app_dir, 'audi_server.log')
         rgc = ReverseGeoCoder.new(@db)
 
         case argv[0]
