@@ -20,7 +20,8 @@ module CarTracker
 
   class Vehicle < PEROBS::Object
 
-    attr_persist :vin, :telemetry, :rides, :charges, :next_server_sync_time, :server_sync_pause_mins
+    attr_persist :vin, :telemetry, :rides, :charges, :next_server_sync_time,
+      :server_sync_pause_mins
 
     def initialize(p)
       super(p)
@@ -34,15 +35,16 @@ module CarTracker
       self.server_sync_pause_mins = 10 unless @server_sync_pause_mins
     end
 
+    def last_vehicle_contact_time
+      @telemetry.last.last_vehicle_contact_time
+    end
+
     def add_record(record, rgc)
       # We only store the new record if at least one value differs from the
       # previous record (with the exception of the timestamp).
       if @telemetry.last != record
-        update_next_poll_time(:shorter, record.state)
         @telemetry << record
         analyze_telemetry_record(@telemetry.length - 1, rgc)
-      else
-        update_next_poll_time(:longer)
       end
     end
 
@@ -89,6 +91,34 @@ module CarTracker
       Charge::table_footer(t)
 
       t
+    end
+
+    def update_next_poll_time(direction, state = nil)
+      pause_mins = @server_sync_pause_mins
+      if direction == :longer
+        hour = Time.now.hour
+        hourly_max_interval_mins = [
+          180, 180, 180, 180, 90, 60,
+          15, 15, 15, 15, 15, 15,
+          15, 15, 15, 15, 15, 15,
+          30, 30, 30, 90, 180, 180
+        ]
+        max_interval_mins = hourly_max_interval_mins[hour]
+        pause_mins = (pause_mins * 1.5).to_i
+        if pause_mins > max_interval_mins
+          pause_mins = max_interval_mins
+        end
+      else
+        # Immediately go to minimum pause time based on the current state of
+        # the vehicle.
+        pause_mins = state == :charging_dc ? 2 : 5
+      end
+
+      self.server_sync_pause_mins = pause_mins
+      self.next_server_sync_time = Time.now + pause_mins * 60
+      Log.info("Next server sync for #{@vin} is scheduled in " +
+               "#{@server_sync_pause_mins} minutes at " +
+               "#{@next_server_sync_time}")
     end
 
     def to_csv
@@ -179,34 +209,6 @@ module CarTracker
       charge.longitude = start_record.longitude
       charge.map_location_to_address(rgc)
       charge.odometer = start_record.odometer
-    end
-
-    def update_next_poll_time(direction, state = nil)
-      pause_mins = @server_sync_pause_mins
-      if direction == :longer
-        hour = Time.now.hour
-        hourly_max_interval_mins = [
-          180, 180, 180, 180, 90, 60,
-          15, 15, 15, 15, 15, 15,
-          15, 15, 15, 15, 15, 15,
-          30, 30, 30, 90, 180, 180
-        ]
-        max_interval_mins = hourly_max_interval_mins[hour]
-        pause_mins = (pause_mins * 1.5).to_i
-        if pause_mins > max_interval_mins
-          pause_mins = max_interval_mins
-        end
-      else
-        # Immediately go to minimum pause time based on the current state of
-        # the vehicle.
-        pause_mins = state == :charging_dc ? 2 : 5
-      end
-
-      self.server_sync_pause_mins = pause_mins
-      self.next_server_sync_time = Time.now + pause_mins * 60
-      Log.info("Next server sync for #{@vin} is scheduled in " +
-               "#{@server_sync_pause_mins} minutes at " +
-               "#{@next_server_sync_time}")
     end
 
     def state_changed?(first_record, second_record)

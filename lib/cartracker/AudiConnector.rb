@@ -182,10 +182,19 @@ module CarTracker
 
       record = @store.new(TelemetryRecord)
 
-      if get_vehicle_status(vehicle, record) &&
-          get_vehicle_position(vehicle, record) &&
-          get_vehicle_charger(vehicle, record)
-        vehicle.add_record(record, rgc)
+      return unless get_vehicle_status(vehicle, record)
+
+      # If the vehicle contact time hasn't changed the server does not have
+      # any new vehicle data. We only request more data from the server if it
+      # actually has an update from the vehicle.
+      if record.last_vehicle_contact_time > vehicle.last_vehicle_contact_time
+        if get_vehicle_position(vehicle, record) &&
+            get_vehicle_charger(vehicle, record)
+          vehicle.add_record(record, rgc)
+          vehicle.update_next_poll_time(:shorter)
+        else
+          vehicle.update_next_poll_time(:longer)
+        end
       end
 
       #url = @base_url + "bs/climatisation/v1/Audi/DE/vehicles/#{vin}/climater"
