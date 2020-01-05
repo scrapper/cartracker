@@ -20,7 +20,8 @@ module CarTracker
       :odometer, :speed, :outside_temperature,
       :doors_unlocked, :doors_open, :windows_open,
       :latitude, :longitude,
-      :parking_brake_active, :soc, :range, :charging_mode, :charging_power
+      :parking_brake_active, :soc, :range, :charging_mode, :charging_power,
+      :climater_temperature, :climater_status
 
     def initialize(p)
       super
@@ -38,6 +39,8 @@ module CarTracker
       self.doors_unlocked = 0 unless @doors_unlocked
       self.doors_open = 0 unless @doors_open
       self.windows_open = 0 unless @windows_open
+      self.climater_temperature = 0 unless @climater_temperature
+      self.climater_status = 'off' unless @climater_status
     end
 
     def ==(r)
@@ -99,6 +102,23 @@ module CarTracker
       self.outside_temperature = celsius
 
       true
+    end
+
+    def set_climater_temperature(kelvin)
+      # The temperature is stored in deci Centigrade.
+      celsius = kelvin.to_i - 2732
+      if celsius <= -300 || celsius > 500
+        Log.warn "Climater temperature out of range: #{celsius / 10.0} C"
+        return false
+      end
+
+      self.climater_temperature = celsius
+
+      true
+    end
+
+    def set_climater_status(status)
+      self.climater_status = status
     end
 
     def set_parking_brake_active(value)
@@ -249,7 +269,8 @@ module CarTracker
         @odometer, @speed, @outside_temperature,
         @doors_unlocked, @doors_open, @windows_open,
         @latitude, @longitude,
-        @parking_brake_active, @soc, @range, @charging_mode, @charging_power
+        @parking_brake_active, @soc, @range, @charging_mode, @charging_power,
+        @climater_temperatur, @climater_status
       ].join(',')
     end
 

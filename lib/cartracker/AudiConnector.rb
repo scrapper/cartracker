@@ -197,7 +197,8 @@ module CarTracker
       # actually has an update from the vehicle.
       if record.last_vehicle_contact_time > vehicle.last_vehicle_contact_time
         if get_vehicle_position(vehicle, record) &&
-            get_vehicle_charger(vehicle, record)
+            get_vehicle_charger(vehicle, record) &&
+            get_vehicle_climater(vehicle, record)
           vehicle.add_record(record, rgc)
           vehicle.update_next_poll_time(:shorter)
         else
@@ -207,9 +208,6 @@ module CarTracker
       else
         vehicle.update_next_poll_time(:longer)
       end
-
-      #url = @base_url + "bs/climatisation/v1/Audi/DE/vehicles/#{vin}/climater"
-      #return false unless (data = connect_request(url))
     end
 
     def sync_vehicles
@@ -474,7 +472,19 @@ module CarTracker
       else
         Log.warn "charger data is corrupted: #{data}"
       end
+    end
 
+    def get_vehicle_climater(vehicle, record)
+      vin = vehicle.vin
+      url = @base_url + "bs/climatisation/v1/Audi/DE/vehicles/#{vin}/climater"
+      return false unless (data = connect_request(url))
+
+      record.set_climater_temperature(
+        hash_extract(data, 'climater', 'settings',
+                     'targetTemperature', 'content'))
+      record.set_climater_status(
+        hash_extract(data, 'climater', 'status', 'climatisationStatusData',
+                     'climatisationState', 'content'))
     end
 
     def connect_request(url)
@@ -512,6 +522,26 @@ module CarTracker
       request = Net::HTTP::Get.new(uri, @request_header)
 
       http.request(request)
+    end
+
+    def hash_extract(hash, *path)
+      hp = hash
+      dotted_path = ''
+
+      path.each do |key|
+        unless hp.is_a?(Hash)
+          Log.warn "#{dotted_path} is not a hash in: #{hp}"
+          return nil
+        end
+        unless hp.include?(key)
+          Log.warn "#{dotted_path} does not contain an key named #{key}: " +
+            hp
+          return nil
+        end
+
+        hp = hp[key]
+        dotted_path += key + '.'
+      end
     end
 
     def log_server_message(msg)
