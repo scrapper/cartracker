@@ -186,7 +186,11 @@ module CarTracker
 
       record = @store.new(TelemetryRecord)
 
-      return unless get_vehicle_status(vehicle, record)
+      unless get_vehicle_status(vehicle, record)
+        # Likely some kind of server problem. Back off and hope the problem
+        # gets resolved.
+        vehicle.update_next_poll_time(:longer)
+      end
 
       # If the vehicle contact time hasn't changed the server does not have
       # any new vehicle data. We only request more data from the server if it
@@ -197,8 +201,11 @@ module CarTracker
           vehicle.add_record(record, rgc)
           vehicle.update_next_poll_time(:shorter)
         else
+          # Likely some server issue. Back off.
           vehicle.update_next_poll_time(:longer)
         end
+      else
+        vehicle.update_next_poll_time(:longer)
       end
 
       #url = @base_url + "bs/climatisation/v1/Audi/DE/vehicles/#{vin}/climater"
