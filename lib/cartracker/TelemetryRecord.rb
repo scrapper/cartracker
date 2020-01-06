@@ -105,6 +105,8 @@ module CarTracker
     end
 
     def set_climater_temperature(kelvin)
+      return false unless kelvin
+
       # The temperature is stored in deci Centigrade.
       celsius = kelvin.to_i - 2732
       if celsius <= -300 || celsius > 500
@@ -118,7 +120,11 @@ module CarTracker
     end
 
     def set_climater_status(status)
+      return false unless status
+
       self.climater_status = status
+
+      true
     end
 
     def set_parking_brake_active(value)
@@ -216,6 +222,8 @@ module CarTracker
     end
 
     def set_position(latitude, longitude)
+      return false unless latitude && longitude
+
       # Latitude and longitude are stored in a millions of a degree.
       latitude = latitude.to_i
 
@@ -246,6 +254,8 @@ module CarTracker
     end
 
     def set_charging(mode, power)
+      return false unless mode && power
+
       # The mode can be off, AC or DC
       unless %w(off AC DC).include?(mode)
         Log.warn "Unknown charging mode: #{mode}"

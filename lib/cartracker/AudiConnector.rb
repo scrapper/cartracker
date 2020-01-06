@@ -407,29 +407,13 @@ module CarTracker
         return true
       end
 
-      if data.is_a?(Hash) && data.include?('findCarResponse') &&
-          data['findCarResponse'].include?('Position') &&
-          (position = data['findCarResponse']['Position']).is_a?(Hash)
-        if position.include?('carCoordinate') &&
-           (coordinates = position['carCoordinate']).is_a?(Hash) &&
-           position.include?('timestampCarCaptured')
-          if coordinates.include?('latitude') &&
-              coordinates.include?('longitude')
-            record.set_position(coordinates['latitude'],
-                                coordinates['longitude'])
-            return true
-          else
-            Log.warn "findCarResponse position corrupted: #{position.inspect}"
-          end
-        else
-          Log.warn "findCarResponse coordinates corrupted: " +
-            "#{coordinates.inspect}"
-        end
-      else
-        Log.warn "findCarResponse is corrupted: #{data.inspect}"
-      end
+      record.set_position(
+        hash_extract(data, 'findCarResponse', 'Position', 'carCoordinate',
+                     'latitude'),
+        hash_extract(data, 'findCarResponse', 'Position', 'carCoordinate',
+                     'longitude'))
 
-      false
+      true
     end
 
     def get_tripdata(vehicle, record)
@@ -446,33 +430,11 @@ module CarTracker
       url = @base_url + "bs/batterycharge/v1/Audi/DE/vehicles/#{vin}/charger"
       return false unless (data = connect_request(url))
 
-      if data.is_a?(Hash) && data.include?('charger') &&
-          (charger = data['charger']).is_a?(Hash)
-        if charger.include?('status') &&
-            (status = charger['status']).is_a?(Hash) &&
-            status.include?('chargingStatusData') &&
-            (chargingStatusData = status['chargingStatusData']).is_a?(Hash) &&
-            status.include?('batteryStatusData') &&
-            (batteryStatusData = status['batteryStatusData']).is_a?(Hash)
-          if chargingStatusData.include?('chargingPower') &&
-             (chargingPower = chargingStatusData['chargingPower']).is_a?(Hash) &&
-             chargingPower.include?('content') &&
-             chargingPower.include?('timestamp') &&
-             (chargingMode = chargingStatusData['chargingMode']).is_a?(Hash) &&
-             chargingMode.include?('content') &&
-             chargingMode.include?('timestamp')
-            record.set_charging(chargingMode['content'],
-                                chargingPower['content'])
-          else
-            Log.warn "chargingStatusData is corrupted: #{chargingStatusData}"
-            return false
-          end
-        else
-          Log.warn "charger status is corrupted: #{charger}"
-        end
-      else
-        Log.warn "charger data is corrupted: #{data}"
-      end
+      record.set_charging(
+        hash_extract(data, 'charger', 'status', 'chargingStatusData',
+                     'chargingMode', 'content'),
+        hash_extract(data, 'charger', 'status', 'chargingStatusData',
+                     'chargingPower', 'content'))
     end
 
     def get_vehicle_climater(vehicle, record)
@@ -536,7 +498,7 @@ module CarTracker
         end
         unless hp.include?(key)
           Log.warn "#{dotted_path} does not contain an key named #{key}: " +
-            hp
+            hp.inspect
           return nil
         end
 
