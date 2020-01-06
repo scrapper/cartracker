@@ -270,7 +270,7 @@ module CarTracker
         @doors_unlocked, @doors_open, @windows_open,
         @latitude, @longitude,
         @parking_brake_active, @soc, @range, @charging_mode, @charging_power,
-        @climater_temperatur, @climater_status
+        @climater_temperature, @climater_status
       ].join(',')
     end
 

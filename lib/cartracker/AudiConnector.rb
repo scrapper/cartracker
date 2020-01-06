@@ -190,6 +190,7 @@ module CarTracker
         # Likely some kind of server problem. Back off and hope the problem
         # gets resolved.
         vehicle.update_next_poll_time(:longer)
+        return
       end
 
       # If the vehicle contact time hasn't changed the server does not have
@@ -542,6 +543,8 @@ module CarTracker
         hp = hp[key]
         dotted_path += key + '.'
       end
+
+      hp
     end
 
     def log_server_message(msg)
