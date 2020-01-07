@@ -513,7 +513,7 @@ module CarTracker
       return unless @server_log
 
       File.open(@server_log, 'a') do |f|
-        f.puts msg
+        f.puts "#{Time.now}: #{msg}"
       end
     end
 
