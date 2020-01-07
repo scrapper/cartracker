@@ -403,7 +403,7 @@ module CarTracker
 
       if data.empty?
         # When the car is in motion no position information is available.
-        vehicle.set_position(nil, nil)
+        record.set_position(nil, nil)
         return true
       end
 
