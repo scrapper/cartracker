@@ -165,13 +165,13 @@ module CarTracker
       puts vehicle.list_charges
     end
 
-    def update_vehicles(rgc)
+    def update_vehicles(rgc, force_update = false)
       @vehicles.each do |vin, vehicle|
-        update_vehicle(vin, rgc)
+        update_vehicle(vin, rgc, force_update)
       end
     end
 
-    def update_vehicle(vin, rgc)
+    def update_vehicle(vin, rgc, force_update)
       return unless token_valid?
 
       vehicle = @vehicles[vin]
@@ -179,7 +179,7 @@ module CarTracker
       # The timestamp for the next server sync of this vehicle determines if
       # we actually connect to the server or not. If we are still in the pause
       # period we abort the update.
-      if vehicle.next_server_sync_time &&
+      if !force_update && vehicle.next_server_sync_time &&
          Time.now < vehicle.next_server_sync_time - 10
         return
       end
@@ -196,7 +196,8 @@ module CarTracker
       # If the vehicle contact time hasn't changed the server does not have
       # any new vehicle data. We only request more data from the server if it
       # actually has an update from the vehicle.
-      if record.last_vehicle_contact_time > vehicle.last_vehicle_contact_time
+      if force_update ||
+          record.last_vehicle_contact_time > vehicle.last_vehicle_contact_time
         if get_vehicle_position(vehicle, record) &&
             get_vehicle_charger(vehicle, record) &&
             get_vehicle_climater(vehicle, record)
@@ -376,11 +377,17 @@ module CarTracker
               # Rear right door open/closed
               record.set_door_open(:rear_right, f['value'])
             when '0x030104000D'
-              # Hatch door locked/unlocked
+              # Hatch locked/unlocked
               record.set_door_unlocked(:hatch, f['value'])
             when '0x030104000E'
-              # Hatch door open/closed
+              # Hatch open/closed
               record.set_door_open(:hatch, f['value'])
+            when '0x0301040010'
+              # Hood locked/unlocked
+              record.set_door_unlocked(:hood, f['value'])
+            when '0x0301040011'
+              # Hood open/closed
+              record.set_door_open(:hood, f['value'])
             when '0x0301050001'
               # Front left window
               record.set_window_open(:front_left, f['value'])

@@ -176,6 +176,8 @@ module CarTracker
         self.doors_unlocked |= 8 if status != 2
       when :hatch
         self.doors_unlocked |= 16 if status != 2
+      when :hood
+        self.doors_unlocked |= 32 if status != 2
       else
         raise ArgumentError, "Unknown door type: #{door}"
       end
@@ -194,6 +196,8 @@ module CarTracker
         self.doors_open |= 8 if status != 3
       when :hatch
         self.doors_open |= 16 if status != 3
+      when :hood
+        self.doors_open |= 32 if status != 3
       else
         raise ArgumentError, "Unknown door type: #{door}"
       end

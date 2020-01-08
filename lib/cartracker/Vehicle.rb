@@ -24,7 +24,7 @@ module CarTracker
       :server_sync_pause_mins
 
     @@DOORS = [ 'front left', 'rear left', 'front right', 'rear right',
-                'hatch' ]
+                'hatch', 'hood' ]
 
     def initialize(p)
       super(p)
