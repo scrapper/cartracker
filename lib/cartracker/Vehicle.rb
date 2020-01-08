@@ -23,6 +23,9 @@ module CarTracker
     attr_persist :vin, :telemetry, :rides, :charges, :next_server_sync_time,
       :server_sync_pause_mins
 
+    @@DOORS = [ 'front left', 'rear left', 'front right', 'rear right',
+                'hatch' ]
+
     def initialize(p)
       super(p)
       restore
@@ -89,6 +92,83 @@ module CarTracker
       @charges.each { |charge| charge.table_row(t) }
       t.foot
       Charge::table_footer(t)
+
+      t
+    end
+
+    def show_status(rgc)
+      r = @telemetry.last
+
+      t = FlexiTable.new
+      t.body
+      t.cell('Last vehicle contact:')
+      t.cell(r.last_vehicle_contact_time)
+      t.new_row
+      t.cell('Odometer:')
+      t.cell("#{r.odometer} km")
+      t.new_row
+      t.cell('Doors:')
+      s = ''
+      if r.doors_open == 0
+        s << 'all closed; '
+      else
+        0.upto(4) do |bit|
+          s << @@DOORS[bit] + ', ' if r.doors_open & (1 << bit)
+        end
+        s << 'open; '
+      end
+      if r.doors_unlocked == 0
+        s << 'all locked'
+      else
+        0.upto(4) do |bit|
+          s << @@DOORS[bit] + ', ' if r.doors_unlocked & (1 << bit)
+        end
+        s << 'unlocked'
+      end
+      t.cell(s)
+      t.new_row
+      t.cell('Windows: ')
+      if r.windows_open == 0
+        t.cell('all closed')
+      else
+        s = ''
+        0.upto(4) do |bit|
+          s << @@DOORS[bit] + ', ' if r.windows_open & (1 << bit)
+        end
+        s << 'open'
+        t.cell(s)
+      end
+      t.new_row
+      t.cell('Position:')
+      if r.latitude && r.longitude
+        t.cell(rgc.map_to_address(r.latitude, r.longitude))
+      else
+        t.cell('')
+      end
+      t.new_row
+      t.cell('Outside Temperature:')
+      t.cell("#{"%.1f" % (r.outside_temperature / 10.0)} °C")
+      t.new_row
+      t.cell('Parking brake:')
+      t.cell(r.parking_brake_active ? 'active' : 'inactive')
+      t.new_row
+      t.cell('State of charge:')
+      t.cell("#{r.soc}%")
+      t.new_row
+      t.cell('Estimated range:')
+      t.cell("#{r.range} km")
+      t.new_row
+      t.cell('Charging mode:')
+      t.cell(r.charging_mode)
+      t.new_row
+      t.cell('Charging power:')
+      t.cell("#{r.charging_power} KW")
+      t.new_row
+      t.cell('AC Temperature:')
+      t.cell("#{"%.1f" % (r.climater_temperature / 10.0)} °C")
+      t.new_row
+      t.cell('AC status:')
+      t.cell(r.climater_status)
 
       t
     end

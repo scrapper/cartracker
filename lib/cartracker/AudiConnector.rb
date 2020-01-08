@@ -211,6 +211,11 @@ module CarTracker
       end
     end
 
+    def show_status(rgc, vin = nil)
+      vehicle = @vehicles[vin] || @default_vehicle
+      puts vehicle.show_status(rgc)
+    end
+
     def sync_vehicles
       @vehicles.each do |vin, vehicle|
         sync_vehicle(vin)
@@ -459,6 +464,7 @@ module CarTracker
         log_server_message(response.body)
         return JSON.parse(response.body)
       when 204
+        log_server_message(response.body)
         return ''
       else
         Log.error "connect_request for #{uri} failed: #{response.message}"

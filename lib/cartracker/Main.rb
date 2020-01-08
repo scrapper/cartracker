@@ -45,6 +45,8 @@ module CarTracker
           ac.list_charges
         when 'list_rides'
           ac.list_rides
+        when 'status'
+          ac.show_status(rgc)
         when 'sync'
           ac.sync_vehicles
         else
