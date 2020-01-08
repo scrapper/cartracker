@@ -164,6 +164,12 @@ module CarTracker
       t.cell('Charging power:')
       t.cell("#{r.charging_power} KW")
       t.new_row
+      t.cell('Remaining charging time:')
+      t.cell((time = r.remaining_charging_time) == 65535 ? '-' : time)
+      t.new_row
+      t.cell('Target SoC:')
+      t.cell(r.remaining_charging_time_target_soc)
+      t.new_row
       t.cell('AC Temperature:')
       t.cell("#{"%.1f" % (r.climater_temperature / 10.0)} °C")
       t.new_row

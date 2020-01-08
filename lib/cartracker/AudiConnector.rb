@@ -439,7 +439,11 @@ module CarTracker
         hash_extract(data, 'charger', 'status', 'chargingStatusData',
                      'chargingMode', 'content'),
         hash_extract(data, 'charger', 'status', 'chargingStatusData',
-                     'chargingPower', 'content'))
+                     'chargingPower', 'content'),
+        hash_extract(data, 'charger', 'status', 'batteryStatusData',
+                     'remainingChargingTime', 'content'),
+        hash_extract(data, 'charger', 'status', 'batteryStatusData',
+                     'remainingChargingTimeTargetSOC', 'content'))
     end
 
     def get_vehicle_climater(vehicle, record)

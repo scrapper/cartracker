@@ -20,7 +20,9 @@ module CarTracker
       :odometer, :speed, :outside_temperature,
       :doors_unlocked, :doors_open, :windows_open,
       :latitude, :longitude,
-      :parking_brake_active, :soc, :range, :charging_mode, :charging_power,
+      :parking_brake_active, :soc, :range,
+      :charging_mode, :charging_power, :remaining_charging_time,
+      :remaining_charging_time_target_soc,
       :climater_temperature, :climater_status
 
     def initialize(p)
@@ -39,6 +41,10 @@ module CarTracker
       self.doors_unlocked = 0 unless @doors_unlocked
       self.doors_open = 0 unless @doors_open
       self.windows_open = 0 unless @windows_open
+      self.remaining_charging_time = 0 unless @remaining_charging_time
+      unless @remaining_charging_time_target_soc
+        self.remaining_charging_time_target_soc = ''
+      end
       self.climater_temperature = 0 unless @climater_temperature
       self.climater_status = 'off' unless @climater_status
     end
@@ -253,7 +259,8 @@ module CarTracker
       true
     end
 
-    def set_charging(mode, power)
+    def set_charging(mode, power, remaining_charging_time,
+                     remaining_charging_time_target_soc)
       return false unless mode && power
 
       # The mode can be off, AC or DC
@@ -269,6 +276,9 @@ module CarTracker
       end
       self.charging_mode = mode
       self.charging_power = power
+      self.remaining_charging_time = remaining_charging_time
+      self.remaining_charging_time_target_soc =
+        remaining_charging_time_target_soc
 
       true
     end
@@ -280,6 +290,7 @@ module CarTracker
         @doors_unlocked, @doors_open, @windows_open,
         @latitude, @longitude,
         @parking_brake_active, @soc, @range, @charging_mode, @charging_power,
+        @remaining_charging_time, @remaining_charging_time_target_soc,
         @climater_temperature, @climater_status
       ].join(',')
     end
