@@ -235,36 +235,27 @@ module CarTracker
       if response.code == '202'
         log_server_message(response.body)
         data = JSON.parse(response.body)
-        if data.is_a?(Hash) && data.include?('CurrentVehicleDataResponse') &&
-            (cvdr = data['CurrentVehicleDataResponse']).is_a?(Hash) &&
-            cvdr.include?('requestId')
-          request_id = cvdr['requestId']
-        else
-          Log.warn "CurrentVehicleDataResponse corrupted: #{data}"
-          return false
-        end
+
+        request_id = hash_extract(data, 'CurrentVehicleDataResponse',
+                                  'requestId')
+        return false unless request_id
 
         url = @base_url + "bs/vsr/v1/Audi/DE/vehicles/#{vin}/requests/#{request_id}/jobstatus"
         loop do
           return false unless (data = connect_request(url))
 
-          if data.is_a?(Hash) && data.include?('requestStatusResponse') &&
-              (rsr = data['requestStatusResponse']).is_a?(Hash) &&
-              rsr.include?('status')
-            case rsr['status']
-            when 'request_in_progress'
-              sleep(2)
-            when 'request_successful'
-              break
-            when 'request_fail'
-              Log.warn "Vehicle status request failed"
-              return false
-            else
-              puts "Unknown status: #{rsr['status']}"
-              return false
-            end
+          status = hash_extract(data, 'requestStatusResponse', 'status')
+
+          case status
+          when 'request_in_progress'
+            sleep(10)
+          when 'request_successful'
+            break
+          when 'request_fail'
+            Log.warn "Vehicle status request failed"
+            return false
           else
-            Log.warn "request_in_progress is corrupted: #{data}"
+            puts "Unknown status: #{status}"
             return false
           end
         end
@@ -298,13 +289,10 @@ module CarTracker
       url = @base_url + "bs/vsr/v1/Audi/DE/vehicles/#{vin}/status"
       return false unless (data = connect_request(url))
 
-      unless data.is_a?(Hash) &&
-          (response = data['StoredVehicleDataResponse']) &&
-          (vehicle_data = response['vehicleData']) &&
-          (svdr_data = vehicle_data['data']) && svdr_data.is_a?(Array)
-        Log.warn "StoredVehicleDataResponse data is corrupted: #{response}"
-        return false
-      end
+      svdr_data = hash_extract(data, 'StoredVehicleDataResponse',
+                               'vehicleData', 'data')
+      return false unless svdr_data && svdr_data.is_a?(Array)
+
       svdr_data.each do |d|
         unless d.include?('id')
           Log.warn "StoredVehicleDataResponse data does not contain an id: " +
