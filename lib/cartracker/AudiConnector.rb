@@ -253,10 +253,11 @@ module CarTracker
               rsr.include?('status')
             case rsr['status']
             when 'request_in_progress'
-              sleep(1)
+              sleep(2)
             when 'request_successful'
               break
             when 'request_fail'
+              Log.warn "Vehicle status request failed"
               return false
             else
               puts "Unknown status: #{rsr['status']}"
