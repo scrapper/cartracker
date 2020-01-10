@@ -18,6 +18,7 @@ require 'perobs'
 require 'cartracker/Log'
 require 'cartracker/Vehicle'
 require 'cartracker/TelemetryRecord'
+require 'cartracker/FlexiTable'
 
 module CarTracker
 
@@ -270,6 +271,35 @@ module CarTracker
       end
 
       true
+    end
+
+    def tripdata(vin = nil)
+      vin = @default_vehicle.vin
+
+      url = @base_url + "bs/tripstatistics/v1/Audi/DE/vehicles/#{vin}/tripdata/shortTerm?type=list"
+
+      return false unless (data = connect_request(url))
+
+      tripDataList = hash_extract(data, 'tripDataList', 'tripData')
+
+      return unless tripDataList && tripDataList.is_a?(Array)
+
+      t = FlexiTable.new
+      t.head
+      t.row([ 'Date', 'Odometer', 'Distance', 'Duration', 'Avg. Energy' ])
+
+      t.body
+      tripDataList.each do |trip|
+        #pp trip
+        t.new_row
+        t.cell(Time.parse(trip['timestamp']))
+        t.cell(trip['startMileage'])
+        t.cell(trip['mileage'])
+        t.cell(trip['traveltime'])
+        t.cell(trip['averageElectricEngineConsumption'])
+      end
+
+      puts t
     end
 
     private
