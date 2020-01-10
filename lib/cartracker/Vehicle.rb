@@ -123,7 +123,7 @@ module CarTracker
         t.cell('all closed')
       else
         doors = []
-        0.upto(4) do |bit|
+        0.upto(5) do |bit|
           doors << @@DOORS[bit] if r.doors_open & (1 << bit)
         end
         t.cell(doors.join(', '))
@@ -134,7 +134,7 @@ module CarTracker
         t.cell('all locked')
       else
         doors = []
-        0.upto(4) do |bit|
+        0.upto(5) do |bit|
           doors << @@DOORS[bit] if r.doors_unlocked & (1 << bit)
         end
         t.cell(doors.join(', '))
@@ -145,7 +145,7 @@ module CarTracker
         t.cell('all closed')
       else
         s = ''
-        0.upto(4) do |bit|
+        0.upto(3) do |bit|
           s << @@DOORS[bit] + ', ' if r.windows_open & (1 << bit)
         end
         s << 'open'

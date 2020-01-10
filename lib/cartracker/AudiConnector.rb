@@ -373,52 +373,49 @@ module CarTracker
               record.set_range(f['value'])
             when '0x0301040001'
               # Front left door lock/unlock
-              record.set_door_unlocked(:front_left, f['value'])
+              record.set_door_unlocked(:front_left, f['textId'])
             when '0x0301040002'
               # Front left door open/closed
-              record.set_door_open(:front_left, f['value'])
+              record.set_door_open(:front_left, f['textId'])
             when '0x0301040004'
               # Rear left door lock/unlock
-              record.set_door_unlocked(:rear_left, f['value'])
+              record.set_door_unlocked(:rear_left, f['textId'])
             when '0x0301040005'
               # Rear left door open/closed
-              record.set_door_open(:rear_left, f['value'])
+              record.set_door_open(:rear_left, f['textId'])
             when '0x0301040007'
               # Front right door lock/unlock
-              record.set_door_unlocked(:front_right, f['value'])
+              record.set_door_unlocked(:front_right, f['textId'])
             when '0x0301040008'
               # Front right door open/closed
-              record.set_door_open(:front_right, f['value'])
+              record.set_door_open(:front_right, f['textId'])
             when '0x030104000A'
               # Rear right door lock/unlock
-              record.set_door_unlocked(:rear_right, f['value'])
+              record.set_door_unlocked(:rear_right, f['textId'])
             when '0x030104000B'
               # Rear right door open/closed
-              record.set_door_open(:rear_right, f['value'])
+              record.set_door_open(:rear_right, f['textId'])
             when '0x030104000D'
               # Hatch locked/unlocked
-              record.set_door_unlocked(:hatch, f['value'])
+              record.set_door_unlocked(:hatch, f['textId'])
             when '0x030104000E'
               # Hatch open/closed
-              record.set_door_open(:hatch, f['value'])
-            when '0x0301040010'
-              # Hood locked/unlocked
-              record.set_door_unlocked(:hood, f['value'])
+              record.set_door_open(:hatch, f['textId'])
             when '0x0301040011'
               # Hood open/closed
-              record.set_door_open(:hood, f['value'])
+              record.set_door_open(:hood, f['textId'])
             when '0x0301050001'
               # Front left window
-              record.set_window_open(:front_left, f['value'])
+              record.set_window_open(:front_left, f['textId'])
             when '0x0301050003'
               # Rear left window
-              record.set_window_open(:rear_left, f['value'])
+              record.set_window_open(:rear_left, f['textId'])
             when '0x0301050005'
               # Front right window
-              record.set_window_open(:front_right, f['value'])
+              record.set_window_open(:front_right, f['textId'])
             when '0x0301050007'
               # Rear right window
-              record.set_window_open(:rear_right, f['value'])
+              record.set_window_open(:rear_right, f['textId'])
             end
           end
         end

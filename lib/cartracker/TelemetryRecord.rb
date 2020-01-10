@@ -54,13 +54,21 @@ module CarTracker
         @odometer == r.odometer &&
         @speed == r.speed &&
         @outside_temperature == r.outside_temperature &&
+        @doors_unlocked == r.doors_unlocked &&
+        @doors_open == r.doors_open &&
+        @windows_open == r.windows_open &&
         @latitude == r.latitude &&
         @longitude == r.longitude &&
         @parking_brake_active == r.parking_brake_active &&
         @soc == r.soc &&
         @range == r.range &&
         @charging_mode == r.charging_mode &&
-        @charging_power == r.charging_power
+        @charging_power == r.charging_power &&
+        @remaining_charging_time == r.remaining_charging_time &&
+        @remaining_charging_time_target_soc ==
+        r.remaining_charging_time_target_soc &&
+        @climater_temperature == r.climater_temperature &&
+        @climater_status == r.climater_status
     end
 
     def state
@@ -164,56 +172,51 @@ module CarTracker
     end
 
     def set_door_unlocked(door, status)
-      status = status.to_i
       case door
       when :front_left
-        self.doors_unlocked |= 1 if status != 2
+        self.doors_unlocked |= 1 if status != 'door_locked'
       when :rear_left
-        self.doors_unlocked |= 2 if status != 2
+        self.doors_unlocked |= 2 if status != 'door_locked'
       when :front_right
-        self.doors_unlocked |= 4 if status != 2
+        self.doors_unlocked |= 4 if status != 'door_locked'
       when :rear_right
-        self.doors_unlocked |= 8 if status != 2
+        self.doors_unlocked |= 8 if status != 'door_locked'
       when :hatch
-        self.doors_unlocked |= 16 if status != 2
-      when :hood
-        self.doors_unlocked |= 32 if status != 2
+        self.doors_unlocked |= 16 if status != 'door_locked'
       else
         raise ArgumentError, "Unknown door type: #{door}"
       end
     end
 
     def set_door_open(door, status)
-      status = status.to_i
       case door
       when :front_left
-        self.doors_open |= 1 if status != 3
+        self.doors_open |= 1 if status != 'door_closed'
       when :rear_left
-        self.doors_open |= 2 if status != 3
+        self.doors_open |= 2 if status != 'door_closed'
       when :front_right
-        self.doors_open |= 4 if status != 3
+        self.doors_open |= 4 if status != 'door_closed'
       when :rear_right
-        self.doors_open |= 8 if status != 3
+        self.doors_open |= 8 if status != 'door_closed'
       when :hatch
-        self.doors_open |= 16 if status != 3
+        self.doors_open |= 16 if status != 'door_closed'
       when :hood
-        self.doors_open |= 32 if status != 3
+        self.doors_open |= 32 if status != 'door_closed'
       else
         raise ArgumentError, "Unknown door type: #{door}"
       end
     end
 
     def set_window_open(window, status)
-      status = status.to_i
       case window
       when :front_left
-        self.windows_open |= 1 if status != 3
+        self.windows_open |= 1 if status != 'window_closed'
       when :rear_left
-        self.windows_open |= 2 if status != 3
+        self.windows_open |= 2 if status != 'window_closed'
       when :front_right
-        self.windows_open |= 4 if status != 3
+        self.windows_open |= 4 if status != 'window_closed'
       when :rear_right
-        self.windows_open |= 8 if status != 3
+        self.windows_open |= 8 if status != 'window_closed'
       else
         raise ArgumentError, "Unknown window type: #{window}"
       end
