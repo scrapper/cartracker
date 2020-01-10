@@ -13,10 +13,13 @@ require 'perobs'
 
 require 'cartracker/FlexiTable'
 require 'cartracker/ReverseGeoCoder'
+require 'cartracker/TimeUtils'
 
 module CarTracker
 
   class Ride < PEROBS::Object
+
+    include TimeUtils
 
     attr_persist :vehicle, :start_timestamp, :start_soc,
       :start_latitude, :start_longitude, :start_location,
@@ -100,15 +103,6 @@ module CarTracker
         @end_timestamp, @end_soc, @end_latitude, @end_longitude,
         @end_odometer, @end_temperature, @energy
       ]
-    end
-
-    def Ride::secs2hms(secs)
-      secs = secs.to_i
-      s = secs % 60
-      mins = secs / 60
-      m = mins % 60
-      h = mins / 60
-      "#{h}:#{'%02d' % m}:#{'%02d' % s}"
     end
 
     private

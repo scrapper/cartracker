@@ -287,6 +287,16 @@ module CarTracker
       true
     end
 
+    def latitude_f
+      return nil unless @latitude
+      @latitude / 1000000.0
+    end
+
+    def longitude_f
+      return nil unless @longitude
+      @longitude / 1000000.0
+    end
+
     def to_csv
       [
         @timestamp, @last_vehicle_contact_time,

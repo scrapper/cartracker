@@ -15,16 +15,27 @@ require 'cartracker/Log'
 require 'cartracker/FlexiTable'
 require 'cartracker/Charge'
 require 'cartracker/Ride'
+require 'cartracker/TimeUtils'
+
+
+#   /---\
+#  |/   \|
+#  <\---/>
+#  ||   ||
+#  |/---\|
+#  \-----/
+
 
 module CarTracker
 
   class Vehicle < PEROBS::Object
 
+    include TimeUtils
+
     attr_persist :vin, :telemetry, :rides, :charges, :next_server_sync_time,
       :server_sync_pause_mins
 
-    @@DOORS = [ 'front left', 'rear left', 'front right', 'rear right',
-                'hatch', 'hood' ]
+    @@DOORS = [ 'FL', 'RL', 'FR', 'RR', 'hatch', 'hood' ]
 
     def initialize(p)
       super(p)
@@ -107,27 +118,29 @@ module CarTracker
       t.cell('Odometer:')
       t.cell("#{r.odometer} km")
       t.new_row
-      t.cell('Doors:')
-      s = ''
+      t.cell('Open doors:')
       if r.doors_open == 0
-        s << 'all closed; '
+        t.cell('all closed')
       else
+        doors = []
         0.upto(4) do |bit|
-          s << @@DOORS[bit] + ', ' if r.doors_open & (1 << bit)
+          doors << @@DOORS[bit] if r.doors_open & (1 << bit)
         end
-        s << 'open; '
+        t.cell(doors.join(', '))
       end
-      if r.doors_unlocked == 0
-        s << 'all locked'
-      else
-        0.upto(4) do |bit|
-          s << @@DOORS[bit] + ', ' if r.doors_unlocked & (1 << bit)
-        end
-        s << 'unlocked'
-      end
-      t.cell(s)
       t.new_row
-      t.cell('Windows: ')
+      t.cell('Unlocked doors:')
+      if r.doors_unlocked == 0
+        t.cell('all locked')
+      else
+        doors = []
+        0.upto(4) do |bit|
+          doors << @@DOORS[bit] if r.doors_unlocked & (1 << bit)
+        end
+        t.cell(doors.join(', '))
+      end
+      t.new_row
+      t.cell('Open windows: ')
       if r.windows_open == 0
         t.cell('all closed')
       else
@@ -141,7 +154,8 @@ module CarTracker
       t.new_row
       t.cell('Position:')
       if r.latitude && r.longitude
-        t.cell(rgc.map_to_address(r.latitude, r.longitude))
+        address = rgc.map_to_address(r.latitude_f, r.longitude_f)
+        t.cell("#{address.street}, #{address.city}")
       else
         t.cell('')
       end
@@ -165,7 +179,8 @@ module CarTracker
       t.cell("#{r.charging_power} KW")
       t.new_row
       t.cell('Remaining charging time:')
-      t.cell((time = r.remaining_charging_time) == 65535 ? '-' : time)
+      t.cell((time = r.remaining_charging_time) == 65535 ?
+             '-' : mins2dhm(time))
       t.new_row
       t.cell('Target SoC:')
       t.cell(r.remaining_charging_time_target_soc)
