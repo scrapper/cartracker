@@ -186,6 +186,9 @@ module CarTracker
       t.cell('Charger state:')
       t.cell(r.external_power_supply_state)
       t.new_row
+      t.cell('Plug state:')
+      t.cell(r.plug_state)
+      t.new_row
       t.cell('Energy flow:')
       t.cell(r.energy_flow)
       t.new_row

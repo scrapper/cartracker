@@ -23,7 +23,7 @@ module CarTracker
       :parking_brake_active, :soc, :range,
       :charging_mode, :charging_power, :external_power_supply_state,
       :energy_flow, :charging_state, :remaining_charging_time,
-      :remaining_charging_time_target_soc,
+      :remaining_charging_time_target_soc, :plug_state,
       :climater_temperature, :climater_status
 
     def initialize(p)
@@ -52,6 +52,7 @@ module CarTracker
       unless @remaining_charging_time_target_soc.nil?
         self.remaining_charging_time_target_soc = ''
       end
+      self.plug_state = '' unless @plug_state.nil?
       self.climater_temperature = 0 unless @climater_temperature.nil?
       self.climater_status = 'off' unless @climater_status.nil?
     end
@@ -281,7 +282,7 @@ module CarTracker
 
     def set_charging(mode, power, external_power_supply_state,
                      energy_flow, charging_state, remaining_charging_time,
-                     remaining_charging_time_target_soc)
+                     remaining_charging_time_target_soc, plug_state)
       return false unless mode && power
 
       # The mode can be off, AC or DC
@@ -303,6 +304,7 @@ module CarTracker
       self.remaining_charging_time = remaining_charging_time
       self.remaining_charging_time_target_soc =
         remaining_charging_time_target_soc
+      self.plug_state = plug_state
 
       true
     end
