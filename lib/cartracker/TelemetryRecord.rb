@@ -40,21 +40,21 @@ module CarTracker
     def restore
       self.parking_lights = false if @parking_lights.nil?
       self.speed = 0 if @speed.nil?
-      self.doors_unlocked = 0 unless @doors_unlocked.nil?
-      self.doors_open = 0 unless @doors_open.nil?
-      self.windows_open = 0 unless @windows_open.nil?
-      unless @external_power_supply_state
+      self.doors_unlocked = 0 if @doors_unlocked.nil?
+      self.doors_open = 0 if @doors_open.nil?
+      self.windows_open = 0 if @windows_open.nil?
+      if @external_power_supply_state.nil?
         self.external_power_supply_state = ''
       end
-      self.energy_flow = '' unless @energy_flow.nil?
-      self.charging_state = '' unless @charging_state.nil?
-      self.remaining_charging_time = 0 unless @remaining_charging_time.nil?
-      unless @remaining_charging_time_target_soc.nil?
+      self.energy_flow = '' if @energy_flow.nil?
+      self.charging_state = '' if @charging_state.nil?
+      self.remaining_charging_time = 0 if @remaining_charging_time.nil?
+      if @remaining_charging_time_target_soc.nil?
         self.remaining_charging_time_target_soc = ''
       end
-      self.plug_state = '' unless @plug_state.nil?
-      self.climater_temperature = 0 unless @climater_temperature.nil?
-      self.climater_status = 'off' unless @climater_status.nil?
+      self.plug_state = '' if @plug_state.nil?
+      self.climater_temperature = 0 if @climater_temperature.nil?
+      self.climater_status = 'off' if @climater_status.nil?
     end
 
     def ==(r)
