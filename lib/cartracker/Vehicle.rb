@@ -116,6 +116,9 @@ module CarTracker
       t.cell('Odometer:')
       t.cell("#{r.odometer} km")
       t.new_row
+      t.cell('Parking lights:')
+      t.cell(r.parking_lights ? 'on' : 'off')
+      t.new_row
       t.cell('Open doors:')
       if r.doors_open == 0
         t.cell('all closed')
@@ -179,6 +182,15 @@ module CarTracker
       t.cell('Remaining charging time:')
       t.cell((time = r.remaining_charging_time) == 65535 ?
              '-' : TimeUtils::mins2dhm(time))
+      t.new_row
+      t.cell('Charger state:')
+      t.cell(r.external_power_supply_state)
+      t.new_row
+      t.cell('Energy flow:')
+      t.cell(r.energy_flow)
+      t.new_row
+      t.cell('Charging state:')
+      t.cell(r.charging_state)
       t.new_row
       t.cell('Target SoC:')
       t.cell(r.remaining_charging_time_target_soc)

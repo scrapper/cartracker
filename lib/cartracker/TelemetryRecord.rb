@@ -17,11 +17,12 @@ module CarTracker
   class TelemetryRecord < PEROBS::Object
 
     attr_persist :timestamp, :last_vehicle_contact_time,
-      :odometer, :speed, :outside_temperature,
+      :odometer, :speed, :parking_lights, :outside_temperature,
       :doors_unlocked, :doors_open, :windows_open,
       :latitude, :longitude,
       :parking_brake_active, :soc, :range,
-      :charging_mode, :charging_power, :remaining_charging_time,
+      :charging_mode, :charging_power, :external_power_supply_state,
+      :energy_flow, :charging_state, :remaining_charging_time,
       :remaining_charging_time_target_soc,
       :climater_temperature, :climater_status
 
@@ -37,38 +38,37 @@ module CarTracker
     end
 
     def restore
+      self.parking_lights = false if @parking_lights.nil?
       self.speed = 0 if @speed.nil?
-      self.doors_unlocked = 0 unless @doors_unlocked
-      self.doors_open = 0 unless @doors_open
-      self.windows_open = 0 unless @windows_open
-      self.remaining_charging_time = 0 unless @remaining_charging_time
-      unless @remaining_charging_time_target_soc
+      self.doors_unlocked = 0 unless @doors_unlocked.nil?
+      self.doors_open = 0 unless @doors_open.nil?
+      self.windows_open = 0 unless @windows_open.nil?
+      unless @external_power_supply_state
+        self.external_power_supply_state = ''
+      end
+      self.energy_flow = '' unless @energy_flow.nil?
+      self.charging_state = '' unless @charging_state.nil?
+      self.remaining_charging_time = 0 unless @remaining_charging_time.nil?
+      unless @remaining_charging_time_target_soc.nil?
         self.remaining_charging_time_target_soc = ''
       end
-      self.climater_temperature = 0 unless @climater_temperature
-      self.climater_status = 'off' unless @climater_status
+      self.climater_temperature = 0 unless @climater_temperature.nil?
+      self.climater_status = 'off' unless @climater_status.nil?
     end
 
     def ==(r)
-      @last_vehicle_contact_time == r.last_vehicle_contact_time &&
-        @odometer == r.odometer &&
-        @speed == r.speed &&
-        @outside_temperature == r.outside_temperature &&
-        @doors_unlocked == r.doors_unlocked &&
-        @doors_open == r.doors_open &&
-        @windows_open == r.windows_open &&
-        @latitude == r.latitude &&
-        @longitude == r.longitude &&
-        @parking_brake_active == r.parking_brake_active &&
-        @soc == r.soc &&
-        @range == r.range &&
-        @charging_mode == r.charging_mode &&
-        @charging_power == r.charging_power &&
-        @remaining_charging_time == r.remaining_charging_time &&
-        @remaining_charging_time_target_soc ==
-        r.remaining_charging_time_target_soc &&
-        @climater_temperature == r.climater_temperature &&
-        @climater_status == r.climater_status
+      self.class.attributes.each do |a|
+        # The timestamp alway changes from entry to entry. We can ignore it
+        # for the purpose of this comparison.
+        next if a == :timestamp
+
+        unless r.instance_variable_get('@' + a.to_s) ==
+            instance_variable_get('@' + a.to_s)
+          return false
+        end
+      end
+
+      true
     end
 
     def state
@@ -105,7 +105,14 @@ module CarTracker
       true
     end
 
-    def set_outside_temperature(kelvin)
+    def set_parking_lights(text_id)
+      self.parking_lights = text_id != 'status_parking_light_off'
+
+    end
+
+    def set_outside_temperature(kelvin, text_id)
+      return false unless text_id == 'temperature_outside_valid'
+
       # The temperature is stored in deci Centigrade.
       celsius = kelvin.to_i - 2732
       if celsius <= -300 || celsius > 500
@@ -146,7 +153,9 @@ module CarTracker
       true
     end
 
-    def set_soc(value)
+    def set_soc(value, text_id)
+      return false if text_id != 'soc_ok'
+
       # The state of charge is stored in % (0 - 100)
       soc = value.to_i
       if soc < 0 || soc > 100
@@ -158,7 +167,9 @@ module CarTracker
       true
     end
 
-    def set_speed(value)
+    def set_speed(value, text_id)
+      return false if text_id != 'speed_ok'
+
       # The speed is stored in km/h
       speed = value.to_i
       if speed < 0 || speed > 300
@@ -222,7 +233,9 @@ module CarTracker
       end
     end
 
-    def set_range(value)
+    def set_range(value, text_id)
+      return false if text_id != 'range_ok'
+
       # The range is stored in km.
       range = value.to_i
       if range < 0 || range > 1000
@@ -266,7 +279,8 @@ module CarTracker
       true
     end
 
-    def set_charging(mode, power, remaining_charging_time,
+    def set_charging(mode, power, external_power_supply_state,
+                     energy_flow, charging_state, remaining_charging_time,
                      remaining_charging_time_target_soc)
       return false unless mode && power
 
@@ -283,6 +297,9 @@ module CarTracker
       end
       self.charging_mode = mode
       self.charging_power = power
+      self.external_power_supply_state = external_power_supply_state
+      self.energy_flow = energy_flow
+      self.charging_state = charging_state
       self.remaining_charging_time = remaining_charging_time
       self.remaining_charging_time_target_soc =
         remaining_charging_time_target_soc

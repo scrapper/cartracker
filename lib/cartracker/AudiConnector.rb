@@ -330,7 +330,7 @@ module CarTracker
           return false
         end
 
-        if %w(0x0101010001 0x0101010002 0x030102FFFF
+        if %w(0x0101010001 0x0101010002 0x030101FFFF 0x030102FFFF
               0x030103FFFF 0x030104FFFF 0x030105FFFF).include?(d['id'])
           # Other potentially interesting sections:
           # 0x030104FFFF: Doors
@@ -356,21 +356,24 @@ module CarTracker
             when '0x0101010002'
               # Odometer
               record.set_odometer(f['value'])
+            when '0x0301010001'
+              # Parking lights active
+              record.set_parking_lights(f['textId'])
             when '0x0301020001'
               # Outside temperature in dKelvin
-              record.set_outside_temperature(f['value'])
+              record.set_outside_temperature(f['value'], f['textId'])
             when '0x0301030001'
               # parking brake active (0/1)
               record.set_parking_brake_active(f['value'])
             when '0x0301030002'
               # SOC (%)
-              record.set_soc(f['value'])
+              record.set_soc(f['value'], f['textId'])
             when '0x0301030004'
               # Speed (km/h)
-              record.set_speed(f['value'])
+              record.set_speed(f['value'], f['textId'])
             when '0x0301030005'
               # Range (km)
-              record.set_range(f['value'])
+              record.set_range(f['value'], f['textId'])
             when '0x0301040001'
               # Front left door lock/unlock
               record.set_door_unlocked(:front_left, f['textId'])
@@ -463,6 +466,12 @@ module CarTracker
                      'chargingMode', 'content'),
         hash_extract(data, 'charger', 'status', 'chargingStatusData',
                      'chargingPower', 'content'),
+        hash_extract(data, 'charger', 'status', 'chargingStatusData',
+                     'externalPowerSupplyState', 'content'),
+        hash_extract(data, 'charger', 'status', 'chargingStatusData',
+                     'energyFlow', 'content'),
+        hash_extract(data, 'charger', 'status', 'chargingStatusData',
+                     'chargingState', 'content'),
         hash_extract(data, 'charger', 'status', 'batteryStatusData',
                      'remainingChargingTime', 'content'),
         hash_extract(data, 'charger', 'status', 'batteryStatusData',
