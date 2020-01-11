@@ -33,7 +33,7 @@ module CarTracker
     attr_persist :vin, :telemetry, :rides, :charges, :next_server_sync_time,
       :server_sync_pause_mins
 
-    @@DOORS = [ 'FL', 'RL', 'FR', 'RR', 'hatch', 'hood' ]
+    @@DOORS = [ 'FL', 'FR', 'RL', 'RR', 'hatch', 'hood' ]
 
     def initialize(p)
       super(p)

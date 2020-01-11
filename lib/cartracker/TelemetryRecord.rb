@@ -192,9 +192,9 @@ module CarTracker
       case door
       when :front_left
         self.doors_open |= 1 if status != 'door_closed'
-      when :rear_left
-        self.doors_open |= 2 if status != 'door_closed'
       when :front_right
+        self.doors_open |= 2 if status != 'door_closed'
+      when :rear_left
         self.doors_open |= 4 if status != 'door_closed'
       when :rear_right
         self.doors_open |= 8 if status != 'door_closed'
@@ -211,9 +211,9 @@ module CarTracker
       case window
       when :front_left
         self.windows_open |= 1 if status != 'window_closed'
-      when :rear_left
-        self.windows_open |= 2 if status != 'window_closed'
       when :front_right
+        self.windows_open |= 2 if status != 'window_closed'
+      when :rear_left
         self.windows_open |= 4 if status != 'window_closed'
       when :rear_right
         self.windows_open |= 8 if status != 'window_closed'

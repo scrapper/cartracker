@@ -378,17 +378,17 @@ module CarTracker
               # Front left door open/closed
               record.set_door_open(:front_left, f['textId'])
             when '0x0301040004'
-              # Rear left door lock/unlock
-              record.set_door_unlocked(:rear_left, f['textId'])
-            when '0x0301040005'
-              # Rear left door open/closed
-              record.set_door_open(:rear_left, f['textId'])
-            when '0x0301040007'
               # Front right door lock/unlock
               record.set_door_unlocked(:front_right, f['textId'])
-            when '0x0301040008'
+            when '0x0301040005'
               # Front right door open/closed
               record.set_door_open(:front_right, f['textId'])
+            when '0x0301040007'
+              # Rear left door lock/unlock
+              record.set_door_unlocked(:rear_left, f['textId'])
+            when '0x0301040008'
+              # Rear left door open/closed
+              record.set_door_open(:rear_left, f['textId'])
             when '0x030104000A'
               # Rear right door lock/unlock
               record.set_door_unlocked(:rear_right, f['textId'])
