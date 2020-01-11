@@ -30,8 +30,6 @@ module CarTracker
 
   class Vehicle < PEROBS::Object
 
-    include TimeUtils
-
     attr_persist :vin, :telemetry, :rides, :charges, :next_server_sync_time,
       :server_sync_pause_mins
 
@@ -180,7 +178,7 @@ module CarTracker
       t.new_row
       t.cell('Remaining charging time:')
       t.cell((time = r.remaining_charging_time) == 65535 ?
-             '-' : mins2dhm(time))
+             '-' : TimeUtils::mins2dhm(time))
       t.new_row
       t.cell('Target SoC:')
       t.cell(r.remaining_charging_time_target_soc)

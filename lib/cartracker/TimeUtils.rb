@@ -14,7 +14,7 @@ module CarTracker
 
   module TimeUtils
 
-    def secs2hms(secs)
+    def TimeUtils::secs2hms(secs)
       secs = secs.to_i
       s = secs % 60
       mins = secs / 60
@@ -23,7 +23,7 @@ module CarTracker
       "#{h}:#{'%02d' % m}:#{'%02d' % s}"
     end
 
-    def mins2dhm(mins)
+    def TimeUtils::mins2dhm(mins)
       mins = mins.to_i
       m = mins % 60
       h = mins / 60

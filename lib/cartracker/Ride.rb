@@ -19,8 +19,6 @@ module CarTracker
 
   class Ride < PEROBS::Object
 
-    include TimeUtils
-
     attr_persist :vehicle, :start_timestamp, :start_soc,
       :start_latitude, :start_longitude, :start_location,
       :start_odometer, :start_temperature,
@@ -59,7 +57,7 @@ module CarTracker
           { :halign => :left },
           { :halign => :left },
           { :halign => :right,
-            :format => Proc.new { |v| secs2hms(v) },
+            :format => Proc.new { |v| TimeUtils::secs2hms(v) },
             :label => :duration },
           { :halign => :right, :label => :distance },
           { :halign => :left },
