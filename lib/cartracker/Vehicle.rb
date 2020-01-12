@@ -273,13 +273,12 @@ module CarTracker
           # determine the ride data.
           extract_ride(r1, r0, rgc)
         end
-        if r1.soc < (r0.soc - 1) && r1.charging_mode == 'off' &&
-            r0.charging_mode == 'off'
+        if r1.soc < (r0.soc - 1) && !r1.is_charging? && !r0.is_charging?
           # We have an SoC increase but no charging record. We ignore
           # increases of 1% since these can be caused by temperature
           # variations.
           extract_charge(r1, r0, rgc)
-        elsif r1.charging_mode != 'off'
+        elsif r1.is_charging?
           # We have a charging record.
           extract_charge(r2, r1, rgc)
         end

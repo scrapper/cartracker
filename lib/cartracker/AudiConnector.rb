@@ -490,6 +490,8 @@ module CarTracker
         hash_extract(data, 'climater', 'settings',
                      'targetTemperature', 'content'))
       record.set_climater_status(
+        hash_extract(data, 'climater', 'settings',
+                     'climatisationWithoutHVpower', 'content'),
         hash_extract(data, 'climater', 'status', 'climatisationStatusData',
                      'climatisationState', 'content'))
     end

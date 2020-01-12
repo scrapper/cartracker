@@ -24,7 +24,7 @@ module CarTracker
       :charging_mode, :charging_power, :external_power_supply_state,
       :energy_flow, :charging_state, :remaining_charging_time,
       :remaining_charging_time_target_soc, :plug_state,
-      :climater_temperature, :climater_status
+      :climater_temperature, :climatisationWithoutHVpower, :climater_status
 
     def initialize(p)
       super
@@ -54,6 +54,9 @@ module CarTracker
       end
       self.plug_state = '' if @plug_state.nil?
       self.climater_temperature = 0 if @climater_temperature.nil?
+      if @climatisationWithoutHVpower.nil?
+        self.climatisationWithoutHVpower = false
+      end
       self.climater_status = 'off' if @climater_status.nil?
     end
 
@@ -82,6 +85,10 @@ module CarTracker
       else
         return :driving
       end
+    end
+
+    def is_charging?
+      @charging_mode == 'AC' || @charging_mode == 'DC'
     end
 
     def set_last_vehicle_contact_time(ts)
@@ -141,9 +148,10 @@ module CarTracker
       true
     end
 
-    def set_climater_status(status)
-      return false unless status
+    def set_climater_status(climatisationWithoutHVpower, status)
+      return false unless climatisationWithoutHVpower && status
 
+      self.climatisationWithoutHVpower = climatisationWithoutHVpower
       self.climater_status = status
 
       true
@@ -286,7 +294,7 @@ module CarTracker
       return false unless mode && power
 
       # The mode can be off, AC or DC
-      unless %w(off AC DC).include?(mode)
+      unless %w(off AC DC conditioning).include?(mode)
         Log.warn "Unknown charging mode: #{mode}"
         return false
       end
@@ -320,15 +328,9 @@ module CarTracker
     end
 
     def to_csv
-      [
-        @timestamp, @last_vehicle_contact_time,
-        @odometer, @speed, @outside_temperature,
-        @doors_unlocked, @doors_open, @windows_open,
-        @latitude, @longitude,
-        @parking_brake_active, @soc, @range, @charging_mode, @charging_power,
-        @remaining_charging_time, @remaining_charging_time_target_soc,
-        @climater_temperature, @climater_status
-      ].join(',')
+      self.class.attributes.map do |attr|
+        instance_variable_get('@' + attr.to_s)
+      end.join(',')
     end
 
   end
