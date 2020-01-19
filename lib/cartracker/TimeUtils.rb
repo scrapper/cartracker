@@ -27,8 +27,8 @@ module CarTracker
       mins = mins.to_i
       m = mins % 60
       h = mins / 60
-      d = mins / (60 * 60)
-      "#{d}:#{'%02d' % h}:#{'%02d' % m}"
+      d = mins / (24 * 60)
+      "#{d}d #{'%02d' % h}:#{'%02d' % m}"
     end
 
   end

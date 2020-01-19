@@ -39,6 +39,8 @@ module CarTracker
           ac.analyze_telemetry(rgc)
         when 'update'
           ac.update_vehicles(rgc)
+        when 'force_update'
+          ac.update_vehicles(rgc, true)
         when 'list'
           ac.list_vehicles
         when 'list_charges'

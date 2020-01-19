@@ -479,6 +479,8 @@ module CarTracker
         hash_extract(data, 'charger', 'status', 'plugStatusData',
                      'plugState', 'content')
       )
+
+      true
     end
 
     def get_vehicle_climater(vehicle, record)
@@ -494,6 +496,8 @@ module CarTracker
                      'climatisationWithoutHVpower', 'content'),
         hash_extract(data, 'climater', 'status', 'climatisationStatusData',
                      'climatisationState', 'content'))
+
+      true
     end
 
     def connect_request(url)

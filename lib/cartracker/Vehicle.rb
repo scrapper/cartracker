@@ -271,21 +271,21 @@ module CarTracker
           # Rides never show up as a block. If we have a block it's from a
           # charging or parking period. So we always use r1 and r0 to
           # determine the ride data.
-          extract_ride(r1, r0, rgc)
+          extract_ride(r3, r1, r0, rgc)
         end
         if r1.soc < (r0.soc - 1) && !r1.is_charging? && !r0.is_charging?
           # We have an SoC increase but no charging record. We ignore
           # increases of 1% since these can be caused by temperature
           # variations.
-          extract_charge(r1, r0, rgc)
+          extract_charge(r1, r1, r0, r0, rgc)
         elsif r1.is_charging?
           # We have a charging record.
-          extract_charge(r2, r1, rgc)
+          extract_charge(r3, r2, r1, r0, rgc)
         end
       end
     end
 
-    def extract_ride(start_record, end_record, rgc)
+    def extract_ride(before_record, start_record, end_record, rgc)
       energy = soc2energy(start_record.soc - end_record.soc)
       energy = 0.0 if energy < 0.0
       @rides << (ride = @store.new(Ride))
@@ -296,8 +296,14 @@ module CarTracker
       # end SOC for both values.
       ride.start_soc = end_record.soc < start_record.soc ?
         start_record.soc : end_record.soc
-      ride.start_latitude = start_record.latitude
-      ride.start_longitude = start_record.longitude
+      if start_record.latitude && start_record.longitude
+        ride.start_latitude = start_record.latitude
+        ride.start_longitude = start_record.longitude
+      elsif before_record.latitude && before_record.longitude &&
+            before_record.odometer == start_record.odometer
+        ride.start_latitude = before_record.latitude
+        ride.start_longitude = before_record.longitude
+      end
       ride.start_odometer = start_record.odometer
       ride.start_temperature = start_record.outside_temperature
       ride.end_timestamp = end_record.last_vehicle_contact_time ||
@@ -311,20 +317,30 @@ module CarTracker
       ride.map_locations_to_addresses(rgc)
     end
 
-    def extract_charge(start_record, end_record, rgc)
-      energy = soc2energy(end_record.soc - start_record.soc)
+    def extract_charge(before_record, start_record, end_record, after_record,
+                       rgc)
+      start_soc = !before_record.is_charging? &&
+        before_record.soc < start_record.soc ?
+        before_record.soc : start_record.soc
+      end_soc = !after_record.is_charging? &&
+        after_record.soc > end_record.soc ?
+        after_record.soc : end_record.soc
+      energy = soc2energy(end_soc - start_soc)
       energy = 0.0 if energy < 0.0
-      @charges << (charge = @store.new(Charge))
-      charge.energy = energy
-      charge.type = start_record.state == :charging_dc ? 'DC' : 'AC'
-      charge.start_timestamp = start_record.timestamp
-      charge.start_soc = start_record.soc
-      charge.end_timestamp = end_record.timestamp
-      charge.end_soc = end_record.soc
-      charge.latitude = start_record.latitude
-      charge.longitude = start_record.longitude
-      charge.map_location_to_address(rgc)
-      charge.odometer = start_record.odometer
+
+      @store.transaction do
+        @charges << (charge = @store.new(Charge))
+        charge.energy = energy
+        charge.type = start_record.state == :charging_dc ? 'DC' : 'AC'
+        charge.start_timestamp = start_record.timestamp
+        charge.start_soc = start_soc
+        charge.end_timestamp = end_record.timestamp
+        charge.end_soc = end_soc
+        charge.latitude = start_record.latitude
+        charge.longitude = start_record.longitude
+        charge.map_location_to_address(rgc)
+        charge.odometer = start_record.odometer
+      end
     end
 
     def state_changed?(first_record, second_record)
