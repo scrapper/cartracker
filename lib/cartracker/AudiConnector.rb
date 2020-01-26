@@ -19,6 +19,7 @@ require 'cartracker/Log'
 require 'cartracker/Vehicle'
 require 'cartracker/TelemetryRecord'
 require 'cartracker/FlexiTable'
+require 'cartracker/LogViewer'
 
 module CarTracker
 
@@ -215,7 +216,7 @@ module CarTracker
 
     def show_status(rgc, vin = nil)
       vehicle = @vehicles[vin] || @default_vehicle
-      puts vehicle.show_status(rgc)
+      puts vehicle.show_status(rgc, -1)
     end
 
     def sync_vehicles
@@ -301,6 +302,13 @@ module CarTracker
 
       puts t
     end
+
+    def view_log(rgc, vin = nil)
+      vehicle = @vehicles[vin] || @default_vehicle
+
+      LogViewer.new(rgc, vehicle).run
+    end
+
 
     private
 

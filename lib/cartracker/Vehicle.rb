@@ -105,8 +105,10 @@ module CarTracker
       t
     end
 
-    def show_status(rgc)
-      r = @telemetry.last
+    def show_status(rgc, index)
+      r = @telemetry[index]
+
+      return unless r
 
       t = FlexiTable.new
       t.body
@@ -116,19 +118,19 @@ module CarTracker
       t.cell('Odometer:')
       t.cell("#{r.odometer} km")
       t.new_row
-      t.cell('Parking lights:')
-      t.cell(r.parking_lights ? 'on' : 'off')
+      t.cell('Estimated range:')
+      t.cell("#{r.range} km")
       t.new_row
-      t.cell('Open doors:')
-      if r.doors_open == 0
-        t.cell('all closed')
+      t.cell('Position:')
+      if r.latitude && r.longitude
+        address = rgc.map_to_address(r.latitude_f, r.longitude_f)
+        t.cell("#{address.street}, #{address.city}")
       else
-        doors = []
-        0.upto(5) do |bit|
-          doors << @@DOORS[bit] if r.doors_open & (1 << bit) != 0
-        end
-        t.cell(doors.join(', '))
+        t.cell('')
       end
+      t.new_row
+      t.cell('Parking brake:')
+      t.cell(r.parking_brake_active ? 'active' : 'inactive')
       t.new_row
       t.cell('Unlocked doors:')
       if r.doors_unlocked == 0
@@ -137,6 +139,17 @@ module CarTracker
         doors = []
         0.upto(5) do |bit|
           doors << @@DOORS[bit] if r.doors_unlocked & (1 << bit) != 0
+        end
+        t.cell(doors.join(', '))
+      end
+      t.new_row
+      t.cell('Open doors:')
+      if r.doors_open == 0
+        t.cell('all closed')
+      else
+        doors = []
+        0.upto(5) do |bit|
+          doors << @@DOORS[bit] if r.doors_open & (1 << bit) != 0
         end
         t.cell(doors.join(', '))
       end
@@ -153,25 +166,11 @@ module CarTracker
         t.cell(s)
       end
       t.new_row
-      t.cell('Position:')
-      if r.latitude && r.longitude
-        address = rgc.map_to_address(r.latitude_f, r.longitude_f)
-        t.cell("#{address.street}, #{address.city}")
-      else
-        t.cell('')
-      end
-      t.new_row
-      t.cell('Outside Temperature:')
-      t.cell("#{"%.1f" % (r.outside_temperature / 10.0)} °C")
-      t.new_row
-      t.cell('Parking brake:')
-      t.cell(r.parking_brake_active ? 'active' : 'inactive')
+      t.cell('Parking lights:')
+      t.cell(r.parking_lights ? 'on' : 'off')
       t.new_row
       t.cell('State of charge:')
       t.cell("#{r.soc}%")
-      t.new_row
-      t.cell('Estimated range:')
-      t.cell("#{r.range} km")
       t.new_row
       t.cell('Charging mode:')
       t.cell(r.charging_mode)
@@ -198,10 +197,17 @@ module CarTracker
       t.cell('Target SoC:')
       t.cell(r.remaining_charging_time_target_soc)
       t.new_row
-      t.cell('AC Temperature:')
+      t.cell('Outside Temperature:')
+      if (temp = r.outside_temperature)
+        t.cell("#{"%.1f" % (r.outside_temperature / 10.0)} °C")
+      else
+        t.cell('-')
+      end
+      t.new_row
+      t.cell('Aux. AC Temperature:')
       t.cell("#{"%.1f" % (r.climater_temperature / 10.0)} °C")
       t.new_row
-      t.cell('AC status:')
+      t.cell('Aux. AC status:')
       t.cell(r.climater_status)
 
       t

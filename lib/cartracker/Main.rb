@@ -53,6 +53,8 @@ module CarTracker
           ac.tripdata
         when 'sync'
           ac.sync_vehicles
+        when 'view_log'
+          ac.view_log(rgc)
         else
           $stderr.puts "Usage: cartracker <update|list|sync|analyze>"
         end
