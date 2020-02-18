@@ -126,7 +126,7 @@ module CarTracker
         address = rgc.map_to_address(r.latitude_f, r.longitude_f)
         t.cell("#{address.street}, #{address.city}")
       else
-        t.cell('')
+        t.cell('<no position data>')
       end
       t.new_row
       t.cell('Parking brake:')
