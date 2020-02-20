@@ -441,6 +441,12 @@ module CarTracker
       return false unless (data = connect_request(url))
 
       if data.empty?
+        # If the response is empty (204) we'll try again once more.
+        sleep 1
+        return false unless (data = connect_request(url))
+      end
+
+      if data.empty?
         # When the car is in motion no position information is available.
         record.set_position(nil, nil)
         return true
