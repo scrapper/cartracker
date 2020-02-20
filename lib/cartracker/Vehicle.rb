@@ -218,10 +218,10 @@ module CarTracker
       if direction == :longer
         hour = Time.now.hour
         hourly_max_interval_mins = [
-          180, 180, 180, 180, 90, 60,
-          15, 15, 15, 15, 15, 15,
-          15, 15, 15, 15, 15, 15,
-          30, 30, 30, 90, 180, 180
+          180, 180, 180, 60, 30, 15,
+          5, 5, 5, 5, 5, 5,
+          5, 5, 5, 5, 5, 5,
+          15, 15, 30, 60, 180, 180
         ]
         max_interval_mins = hourly_max_interval_mins[hour]
         pause_mins = (pause_mins * 1.5).to_i
@@ -231,7 +231,7 @@ module CarTracker
       else
         # Immediately go to minimum pause time based on the current state of
         # the vehicle.
-        pause_mins = state == :charging_dc ? 2 : 5
+        pause_mins = 1
       end
 
       self.server_sync_pause_mins = pause_mins
