@@ -224,7 +224,7 @@ module CarTracker
           15, 15, 30, 60, 180, 180
         ]
         max_interval_mins = hourly_max_interval_mins[hour]
-        pause_mins = (pause_mins * 1.5).to_i
+        pause_mins = (pause_mins * 1.5).round
         if pause_mins > max_interval_mins
           pause_mins = max_interval_mins
         end
